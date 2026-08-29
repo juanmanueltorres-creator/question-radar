@@ -1,0 +1,33 @@
+{
+  "version": "v0.2",
+  "scale": {"min": 0, "max": 5},
+  "question_types": [
+    "factual_conceptual",
+    "operational_diagnostic",
+    "scientific_explanatory",
+    "decision_risk",
+    "epistemological_meta",
+    "normative_political",
+    "generative_philosophical"
+  ],
+  "readiness_states": [
+    "ready_to_answer",
+    "ready_to_investigate",
+    "needs_context",
+    "exploratory"
+  ],
+  "formulation_dimensions": {
+    "clarity": "Is the question understandable and semantically interpretable?",
+    "boundedness": "Does it specify enough scope for its intended purpose?",
+    "investigability": "Can evidence, observation, documents, measurement, reasoning, or disciplined conceptual analysis address it?",
+    "epistemic_openness": "Can evidence or reasoning contradict the asker's initial intuition without the desired conclusion being embedded in the wording?",
+    "purpose_fit": "Is the question well formed for what its declared type is trying to accomplish?"
+  },
+  "descriptive_traits": {
+    "depth": "How far does the question move beyond surface lookup into mechanism, implication, structure, meaning, or causation?",
+    "connections": "How meaningfully does it link concepts, domains, actors, scales, evidence types, or prior knowledge?",
+    "generativity": "How strongly can it produce useful follow-up questions or reveal new lines of inquiry?"
+  },
+  "formula": "round((clarity + boundedness + investigability + epistemic_openness + purpose_fit) / 25 * 100)",
+  "principle": "Profile questions for their purpose; never score people or rank unlike question types against each other."
+}
