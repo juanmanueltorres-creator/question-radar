@@ -1,0 +1,13 @@
+{
+  "version": "v0.1",
+  "scale": {"min": 0, "max": 5},
+  "dimensions": {
+    "clarity": "Is the question understandable and sufficiently bounded?",
+    "depth": "Does it move beyond superficial lookup toward causes, mechanisms, implications, or structure?",
+    "investigability": "Can evidence, data, experiments, documents, or observations be used to address it?",
+    "assumption_challenge": "Does it surface or question assumptions that may otherwise remain implicit?",
+    "connections": "Does it connect concepts, scales, domains, evidence types, or prior knowledge meaningfully?"
+  },
+  "formula": "round(sum(dimensions) / 25 * 100)",
+  "principle": "Scores questions, not people. The score is diagnostic guidance, not an authority claim."
+}
