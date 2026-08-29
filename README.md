@@ -1,33 +1,36 @@
 # Question Radar
 
-Question Radar evaluates **questions, not people**.
+Question Radar profiles **questions, not people**.
 
-It is a small, transparent experiment for recording the quality of a question
-across five explicit dimensions, verifying a reproducible 0-100 score, storing
-history locally, and suggesting what the next stronger question could be.
+It is a small, transparent experiment for making question quality inspectable:
+what kind of question is being asked, whether it is ready for its purpose,
+which assumptions or evidence gaps remain, and what stronger question should
+come next.
 
-The score is **diagnostic guidance, not an authority claim**.
+The output is **diagnostic guidance, not an authority claim**.
 
 ## Why
 
-Good questions expose uncertainty, assumptions, evidence gaps, and useful
-connections. Question Radar makes those dimensions visible instead of hiding a
-judgment behind a single opaque number.
+Good questions expose uncertainty, assumptions, evidence gaps, useful
+connections, and decision boundaries. Question Radar keeps those features
+visible instead of hiding judgment behind an opaque score.
 
 This repository is also a safe laboratory for a future Anti IA question
-workflow, but the MVP has **no runtime dependency on Anti IA or GeoPlatform**.
+workflow, but it has **no runtime dependency on Anti IA or GeoPlatform**.
 
-## Rubric v0.1
+## Two compatible contracts
 
-Each dimension is scored from 0 to 5:
+### v0.1 — historical question score
 
-| Dimension | Question |
-| --- | --- |
-| clarity | Is the question understandable and sufficiently bounded? |
-| depth | Does it move beyond superficial lookup toward causes, mechanisms, implications, or structure? |
-| investigability | Can evidence, data, experiments, documents, or observations address it? |
-| assumption_challenge | Does it surface or question implicit assumptions? |
-| connections | Does it connect concepts, scales, domains, evidence types, or prior knowledge meaningfully? |
+v0.1 is frozen and remains supported for historical calibration data.
+
+Its five 0–5 dimensions are:
+
+- `clarity`
+- `depth`
+- `investigability`
+- `assumption_challenge`
+- `connections`
 
 Score:
 
@@ -35,14 +38,71 @@ Score:
 round(sum(dimensions) / 25 * 100)
 ```
 
-A supplied score that does not match the dimensions is rejected.
+See `rubric/v0.1.json` and `examples/evaluation.example.json`.
+
+### v0.2 — typed question profile
+
+v0.2 does not ask only “how good is this question?”. It asks:
+
+- what purpose the question serves;
+- whether it is ready to answer, investigate, needs context, or is intentionally exploratory;
+- how well formulated it is for that purpose;
+- what assumptions and evidence needs remain;
+- what useful next question follows.
+
+Question types:
+
+- `factual_conceptual`
+- `operational_diagnostic`
+- `scientific_explanatory`
+- `decision_risk`
+- `epistemological_meta`
+- `normative_political`
+- `generative_philosophical`
+
+Readiness states:
+
+- `ready_to_answer`
+- `ready_to_investigate`
+- `needs_context`
+- `exploratory`
+
+Universal formulation dimensions, each 0–5:
+
+- `clarity`
+- `boundedness`
+- `investigability`
+- `epistemic_openness`
+- `purpose_fit`
+
+Diagnostic formulation score:
+
+```text
+round((clarity + boundedness + investigability + epistemic_openness + purpose_fit) / 25 * 100)
+```
+
+Descriptive traits are stored separately and do **not** affect that score:
+
+- `depth`
+- `connections`
+- `generativity`
+
+A factual question is therefore not penalized merely for being intentionally
+narrow, and an exploratory philosophical question is not treated as defective
+because it is not immediately answerable.
+
+**There is no global leaderboard across question types.** `profile top`
+requires an explicit type.
+
+See `rubric/v0.2.json` and `examples/profile.example.json`.
 
 ## Privacy model
 
-- Code and rubric are public.
+- Code and rubrics are public.
 - `data/questions.sqlite3` is local and ignored by Git.
+- v0.1 evaluations and v0.2 profiles use separate SQLite tables.
 - Questions become public only when you explicitly export and then share or commit a JSONL/CSV file.
-- The MVP needs no secrets, API keys, external AI calls, accounts, or paid services.
+- No secrets, API keys, external AI calls, accounts, or paid services are required.
 
 ## Install
 
@@ -55,26 +115,39 @@ python -m venv .venv
 python -m pip install -e ".[dev]"
 ```
 
-## Evaluation contract
-
-See `examples/evaluation.example.json`.
-
-An external evaluator — a human, ChatGPT, or another future model — creates the
-structured evaluation. Question Radar validates it. The evaluator can change
-later without changing the storage contract.
-
 ## CLI
+
+### v0.1
 
 ```bash
 question-radar add examples/evaluation.example.json
 question-radar list
 question-radar top --limit 10
 question-radar import questions.jsonl --format jsonl
-question-radar import questions.csv --format csv
-question-radar export exports/questions.jsonl --format jsonl
 question-radar export exports/questions.csv --format csv
-question-radar --db /path/to/questions.sqlite3 list
 ```
+
+### v0.2 profiles
+
+```bash
+question-radar profile add examples/profile.example.json
+question-radar profile list
+question-radar profile top --type factual_conceptual --limit 10
+question-radar profile import corpus/anti-ia-calibration-v0.2.jsonl --format jsonl
+question-radar profile export exports/profiles.csv --format csv
+```
+
+Use another local database for either version:
+
+```bash
+question-radar --db /path/to/questions.sqlite3 profile list
+```
+
+## Calibration data
+
+`corpus/anti-ia-calibration-v0.2.jsonl` contains a deliberately heterogeneous
+set of Anti IA questions across all seven types and all four readiness states.
+The profiles are calibration judgments, not truth labels.
 
 ## Development
 
@@ -82,9 +155,8 @@ question-radar --db /path/to/questions.sqlite3 list
 pytest -q
 ```
 
-## MVP boundaries
+## Boundaries
 
 Not included: web frontend, Supabase, authentication, embeddings, LangGraph,
-external LLM API calls, automatic publication, direct Anti IA integration, or
-GeoPlatform changes. Those omissions are deliberate: first validate whether the
-rubric and question history are useful.
+external LLM API calls, automatic scoring from conversation history, automatic
+publication, direct Anti IA runtime integration, or GeoPlatform changes.
