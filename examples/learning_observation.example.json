@@ -1,0 +1,15 @@
+{
+  "id": "learning-001",
+  "concept": "question_evaluation_models",
+  "gap_type": "connection",
+  "state": "consolidating",
+  "confidence": "medium",
+  "evidence_question_ids": [
+    "chat-2026-08-29-004",
+    "chat-2026-08-29-009"
+  ],
+  "interpretation": "Several questions separate quality, breadth, and readiness, compatible with active consolidation.",
+  "suggested_next_step": "Apply the same distinctions to a new domain and explain which criteria change.",
+  "created_at": "2026-08-29T18:30:00-03:00",
+  "updated_at": "2026-08-29T18:35:00-03:00"
+}

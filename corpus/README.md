@@ -37,3 +37,13 @@ The v0.2 corpus is an explicit new evaluation. It is not an automatic conversion
 The source wording is kept as the `question`. Any refinement lives separately in `next_question`, so the dataset preserves the difference between a spontaneous question and its proposed evolution.
 
 This corpus is useful for testing Question Radar against questions produced during real thinking rather than questions selected in advance from an editorial library.
+
+## Personal Learning Frontier calibration v0.3
+
+`learning-frontier-chat-2026-08-29-v0.3.jsonl` contains three intentionally published learning observations derived only from evidence IDs in the 12-question real chat corpus.
+
+These records are **revisable hypotheses about observable question patterns**, not truth labels about a person. The evidence references stay explicit and ordered so every observation can be inspected against its source questions.
+
+The calibration deliberately includes repeated educational questions that remain `possible_gap` rather than becoming `recurring_gap`: recurrence is ambiguous and can reflect emphasis, disagreement, changed context, weak prior explanations, or an unresolved evidence question.
+
+No learner is ranked or scored by this corpus.

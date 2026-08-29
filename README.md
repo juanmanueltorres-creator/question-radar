@@ -18,7 +18,7 @@ visible instead of hiding judgment behind an opaque score.
 This repository is also a safe laboratory for a future Anti IA question
 workflow, but it has **no runtime dependency on Anti IA or GeoPlatform**.
 
-## Two compatible contracts
+## Compatible layers
 
 ### v0.1 — historical question score
 
@@ -96,11 +96,52 @@ requires an explicit type.
 
 See `rubric/v0.2.json` and `examples/profile.example.json`.
 
+### v0.3 — Personal Learning Frontier
+
+v0.3 adds a separate evidence-first learning layer. It does **not** score a
+learner and it does not claim to know what a person understands internally. A
+`LearningObservation` is a revisable hypothesis supported by explicit, ordered
+question IDs.
+
+Gap types:
+
+- `conceptual`
+- `terminology`
+- `procedural`
+- `connection`
+- `evidence`
+- `transfer`
+
+Observation states:
+
+- `possible_gap`
+- `recurring_gap`
+- `consolidating`
+- `applied`
+- `no_longer_observed`
+
+Confidence values:
+
+- `low`
+- `medium`
+- `high`
+
+Two rules are intentionally strict: **silence is not evidence of mastery or
+ignorance**, and repeated questions do not automatically prove a learning gap.
+Evidence IDs remain inspectable and ordered so an observation can always be
+checked against the questions that support it.
+
+The Learning Frontier is a deterministic summary of stored observations. It
+does not infer new concepts, states, or confidence at render time.
+
+See `examples/learning_observation.example.json` and
+`corpus/learning-frontier-chat-2026-08-29-v0.3.jsonl`.
+
 ## Privacy model
 
 - Code and rubrics are public.
 - `data/questions.sqlite3` is local and ignored by Git.
-- v0.1 evaluations and v0.2 profiles use separate SQLite tables.
+- v0.1 evaluations, v0.2 profiles, and v0.3 learning observations use separate SQLite tables.
 - Questions become public only when you explicitly export and then share or commit a JSONL/CSV file.
 - No secrets, API keys, external AI calls, accounts, or paid services are required.
 
@@ -137,6 +178,20 @@ question-radar profile import corpus/anti-ia-calibration-v0.2.jsonl --format jso
 question-radar profile export exports/profiles.csv --format csv
 ```
 
+### v0.3 learning frontier
+
+```bash
+question-radar learning add examples/learning_observation.example.json
+question-radar learning list
+question-radar learning show learning-001
+question-radar learning frontier
+question-radar learning import corpus/learning-frontier-chat-2026-08-29-v0.3.jsonl --format jsonl
+question-radar learning export exports/learning.jsonl --format jsonl
+```
+
+v0.3 learning import/export is intentionally JSONL-only. v0.1 and v0.2 remain
+historical, supported, and unchanged.
+
 Use another local database for either version:
 
 ```bash
@@ -148,6 +203,11 @@ question-radar --db /path/to/questions.sqlite3 profile list
 `corpus/anti-ia-calibration-v0.2.jsonl` contains a deliberately heterogeneous
 set of Anti IA questions across all seven types and all four readiness states.
 The profiles are calibration judgments, not truth labels.
+
+`corpus/learning-frontier-chat-2026-08-29-v0.3.jsonl` contains three
+evidence-backed observations over the 12-question real chat corpus, including a
+repeated-question case that intentionally remains `possible_gap` rather than
+being promoted automatically to `recurring_gap`.
 
 ## Development
 
