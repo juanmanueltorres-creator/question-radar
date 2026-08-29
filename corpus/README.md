@@ -29,3 +29,11 @@ Calibration rule: if repeated human review shows that a dimension or score does 
 Question Radar v0.2 intentionally does **not** define a global ranking across question types. A factual question, an operational question, and a philosophical question can all be excellent for different purposes.
 
 The v0.2 corpus is an explicit new evaluation. It is not an automatic conversion of v0.1 scores, and the v0.1 corpus remains historical calibration evidence.
+
+## Real chat corpus — 2026-08-29
+
+`chat-2026-08-29.jsonl` preserves 12 questions that emerged naturally during a live conversation about education, expertise, question quality, and the design of Question Radar itself.
+
+The source wording is kept as the `question`. Any refinement lives separately in `next_question`, so the dataset preserves the difference between a spontaneous question and its proposed evolution.
+
+This corpus is useful for testing Question Radar against questions produced during real thinking rather than questions selected in advance from an editorial library.
