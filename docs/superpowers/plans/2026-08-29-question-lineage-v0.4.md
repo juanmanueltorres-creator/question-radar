@@ -106,7 +106,7 @@ def test_source_vocabulary_is_frozen():
     assert SOURCE_TYPES == ("manual", "conversation", "corpus", "external")
 ```
 
-Add tests that reject: missing field, unknown field, blank `id`, blank `question`, blank-string `source_ref`, invalid source, invalid timestamp, and timezone-naive timestamp. Add a test that accepts `source_ref=None`.
+Add tests that reject missing/unknown fields, blank `id`, blank `question`, blank-string `source_ref`, invalid source, invalid timestamp, and timezone-naive timestamp. Add a test that accepts `source_ref=None`.
 
 - [ ] **Step 2: Run node tests and verify RED**
 
@@ -116,9 +116,7 @@ pytest tests/test_lineage.py -v
 
 Expected: import failure because `question_radar.lineage` does not exist.
 
-- [ ] **Step 3: Implement shared text/timestamp validation and `QuestionNode`**
-
-Use this concrete shape:
+- [ ] **Step 3: Implement shared timestamp validation and `QuestionNode`**
 
 ```python
 from dataclasses import asdict, dataclass
@@ -243,7 +241,7 @@ pytest tests/test_lineage.py -v
 pytest -q
 ```
 
-Expected: all new model tests pass and all 170 historical tests remain green.
+Expected: new tests pass and all 170 historical tests remain green.
 
 - [ ] **Step 7: Commit Task 1**
 
@@ -307,7 +305,7 @@ CREATE TABLE IF NOT EXISTS question_relations_v04 (
 )
 ```
 
-Every `_connect()` call must execute `PRAGMA foreign_keys = ON` and set `row_factory = sqlite3.Row`.
+Every `_connect()` call executes `PRAGMA foreign_keys = ON` and sets `row_factory = sqlite3.Row`.
 
 - [ ] **Step 4: Write RED relation-integrity tests**
 
@@ -317,18 +315,7 @@ Cover valid insert/get/list, missing source endpoint, missing target endpoint, d
 
 Make `insert_node(node)` call `insert_bundle([node], [])` and `insert_relation(relation)` call `insert_bundle([], [relation])`.
 
-Inside `insert_bundle`:
-
-```python
-node_ids = [node.id for node in nodes]
-relation_ids = [relation.id for relation in relations]
-triples = [
-    (relation.source_question_id, relation.target_question_id, relation.relation_type)
-    for relation in relations
-]
-```
-
-Reject duplicates inside each incoming list before database writes. In one connection, read existing node IDs, validate every relation endpoint against `existing_ids | set(node_ids)`, insert nodes first, then relations. Convert `sqlite3.IntegrityError` into a clear `ValueError` while allowing the connection context manager to rollback the whole transaction.
+Inside `insert_bundle`, build `node_ids`, `relation_ids`, and `(source,target,type)` triples. Reject duplicates inside the incoming bundle before writes. In one connection, read existing node IDs, validate every relation endpoint against `existing_ids | set(node_ids)`, insert nodes first, then relations. Convert `sqlite3.IntegrityError` into a clear `ValueError`; the connection context manager must rollback the whole transaction on failure.
 
 - [ ] **Step 6: Write RED rollback test**
 
@@ -373,7 +360,7 @@ git commit -m "feat: add atomic lineage storage"
 
 - [ ] **Step 1: Write RED happy-path parser test**
 
-Use this exact three-line fixture:
+Use this exact fixture:
 
 ```jsonl
 {"record_type":"node","id":"q-1","question":"First?","source":"corpus","source_ref":"fixture","created_at":"2026-08-29T18:00:00-03:00"}
@@ -391,7 +378,7 @@ pytest tests/test_lineage_export.py -v
 
 - [ ] **Step 3: Implement deterministic line parsing**
 
-Use `Path(path).read_text(encoding="utf-8").splitlines()`. Ignore blank lines. For each nonblank line, parse JSON, remove `record_type`, dispatch to `QuestionNode.from_dict` or `QuestionRelation.from_dict`, and preserve file order inside the returned node/relation lists. Raise `ValueError(f"malformed JSONL at line {line_number}")` for JSON decoding failures and `ValueError(f"unknown record_type at line {line_number}: {record_type}")` for missing/unknown discriminators.
+Use `Path(path).read_text(encoding="utf-8").splitlines()`. Ignore blank lines. For each nonblank line, parse JSON, remove `record_type`, dispatch to `QuestionNode.from_dict` or `QuestionRelation.from_dict`, and preserve file order inside each returned list. Raise `ValueError(f"malformed JSONL at line {line_number}")` for decoding failures and `ValueError(f"unknown record_type at line {line_number}: {record_type}")` for missing/unknown discriminators.
 
 - [ ] **Step 4: Add error tests**
 
@@ -427,7 +414,7 @@ git commit -m "feat: parse explicit lineage JSONL bundles"
 
 - [ ] **Step 1: Write RED branching-graph tests**
 
-Use the graph:
+Use:
 
 ```text
 q1 -> q2 -> q4
@@ -445,14 +432,12 @@ pytest tests/test_lineage_graph.py -v
 
 - [ ] **Step 3: Implement breadth-first traversal**
 
-Validate `max_depth` with:
-
 ```python
 if isinstance(max_depth, bool) or not isinstance(max_depth, int) or max_depth < 0:
     raise ValueError("max_depth must be a non-negative integer")
 ```
 
-Use a queue of `(node_id, distance)` and a `visited` set initialized with the current ID. Incoming edges define ancestors; outgoing edges define descendants. Return an empty list for depth 0. Sort results by `(distance, node.created_at, node.id)`.
+Use a queue of `(node_id, distance)` and a `visited` set initialized with the current ID. Incoming edges define ancestors; outgoing edges define descendants. Return `[]` for depth 0. Sort results by `(distance, node.created_at, node.id)`.
 
 - [ ] **Step 4: Add cycle/duplicate-path tests**
 
@@ -525,15 +510,15 @@ class ContextPack:
     existing_next_questions: tuple[tuple[str, str], ...]
 ```
 
-The ellipsis token above is Python's variadic-tuple type syntax, not omitted plan content.
+Here the `...` token is Python variadic-tuple syntax, not omitted plan content.
 
-Build `nodes_by_id` from `lineage_store.list_nodes()`, fetch the current node, calculate ancestors/descendants, then create `selected_ids` from current + traversed nodes. Keep only relations with both endpoints selected.
+Build `nodes_by_id` from `lineage_store.list_nodes()`, fetch the current node, calculate ancestors/descendants, then create `selected_ids` from current + traversed nodes. Keep only relations whose source and target are both selected.
 
 - [ ] **Step 4: Write RED v0.2/v0.3 join tests**
 
-Insert one matching and one nonmatching `QuestionProfile`; insert one intersecting and one nonintersecting `LearningObservation`. Assert matching profiles are selected only when `profile.id` is selected, and learning observations are selected only when `evidence_question_ids` intersects selected IDs.
+Insert one matching and one nonmatching `QuestionProfile`; insert one intersecting and one nonintersecting `LearningObservation`. Assert profile selection uses exact node ID equality and learning selection uses non-empty evidence-ID intersection.
 
-Aggregate profile `assumptions`, `evidence_required`, and `next_question` as `(question_id, text)` pairs in selected-node order. Do not add methods or fields to v0.2/v0.3 contracts; use existing `list_all()` methods.
+Aggregate profile `assumptions`, `evidence_required`, and `next_question` as `(question_id, text)` pairs in selected-node order. Do not change v0.2/v0.3 contracts; use their existing `list_all()` APIs.
 
 - [ ] **Step 5: Make joins and ordering GREEN**
 
@@ -555,7 +540,7 @@ Assert these headings occur once and in this order:
 ## EXISTING NEXT QUESTIONS
 ```
 
-Render relation lines exactly as `source_id --relation_type--> target_id`. Under an empty optional section render the literal line `none`. Include node ID, original question, provenance, and hop distance where applicable. Always end output with one newline.
+Render relation lines exactly as `source_id --relation_type--> target_id`. Under an empty optional section render `none`. Include node ID, original question, provenance, and hop distance where applicable. Always end output with one newline character.
 
 - [ ] **Step 7: Implement Markdown and byte-stability test**
 
@@ -563,7 +548,7 @@ Call `render_context_markdown(pack)` twice and assert exact string equality.
 
 - [ ] **Step 8: Write RED JSON renderer test and implement exact output keys**
 
-The decoded JSON object must contain exactly these top-level keys:
+The decoded JSON object must contain exactly:
 
 ```python
 {
@@ -580,7 +565,7 @@ The decoded JSON object must contain exactly these top-level keys:
 }
 ```
 
-Ancestor and descendant entries contain a `distance` integer plus all five node fields. Assumption/evidence/next-question entries are objects with exactly `question_id` and `text`. Serialize with `json.dumps(payload, ensure_ascii=False, indent=2, sort_keys=True) + "\n"` and assert original Spanish text is not escaped.
+Ancestor and descendant entries contain a `distance` integer plus all five node fields. Assumption/evidence/next-question entries contain exactly `question_id` and `text`. Serialize with `json.dumps(payload, ensure_ascii=False, indent=2, sort_keys=True)` and append exactly one newline character to the returned string. Assert original Spanish text remains readable rather than Unicode-escaped.
 
 - [ ] **Step 9: Test depth overrides and cycles through the pack builder**
 
@@ -630,9 +615,9 @@ pytest tests/test_lineage_cli.py -v
 
 - [ ] **Step 3: Extend `build_parser()` using the existing nested namespace pattern**
 
-Follow the existing `profile` and `learning` parser structure. Use `choices=("markdown", "json")` for context format and `type=int` for depths; semantic non-negative validation stays in the Context Pack/graph layer.
+Follow the existing `profile` and `learning` parser structure. Use `choices=("markdown", "json")` for context format and `type=int` for depths; semantic non-negative validation remains in graph/context code.
 
-- [ ] **Step 4: Add single-record loaders and deterministic display helpers**
+- [ ] **Step 4: Add single-record loaders**
 
 ```python
 def _load_single_lineage_node_json(path: str | Path) -> QuestionNode:
@@ -643,15 +628,11 @@ def _load_single_lineage_relation_json(path: str | Path) -> QuestionRelation:
     return QuestionRelation.from_dict(_load_json(path))
 ```
 
-Node `show` prints all five fields. Relation list prints one line per relation as:
-
-```text
-<relation_type>\t<source_question_id>\t<target_question_id>\t<id>
-```
+Node `show` prints all five fields. Relation list prints `relation_type`, `source_question_id`, `target_question_id`, and `id` separated by tabs.
 
 - [ ] **Step 5: Write RED behavior tests using `main()` and a temp DB**
 
-Cover node add/list/show, missing node return code 2, relation add/list/filter, bundle import count, Markdown context, JSON context, and negative depth returning code 2 with a human-readable stderr message and no traceback.
+Cover node add/list/show, missing node return code 2, relation add/list/filter, bundle import count, Markdown context, JSON context, and negative depth returning code 2 with human-readable stderr and no traceback.
 
 - [ ] **Step 6: Implement `_handle_lineage_command`**
 
@@ -663,7 +644,7 @@ lineage_store.insert_bundle(nodes, relations)
 print(f"imported {len(nodes)} nodes and {len(relations)} relations")
 ```
 
-For context, call `build_context_pack`, select the renderer, and print with `end=""` because each renderer owns one trailing newline.
+For context, call `build_context_pack`, choose the renderer, and print with `end=""` because each renderer owns one trailing newline.
 
 - [ ] **Step 7: Verify new and historical CLI behavior**
 
@@ -694,8 +675,6 @@ git commit -m "feat: expose Question Lineage CLI"
 
 - [ ] **Step 1: Write RED corpus test**
 
-Load the new corpus and assert exactly 12 node IDs:
-
 ```python
 expected_ids = {f"chat-2026-08-29-{number:03d}" for number in range(1, 13)}
 assert {node.id for node in nodes} == expected_ids
@@ -704,7 +683,7 @@ assert len(nodes) == 12
 
 Load the historical chat corpus with the existing v0.2 loader and assert each v0.4 node has exactly the matching historical `question` and `created_at`.
 
-- [ ] **Step 2: Run and verify RED because the file does not exist**
+- [ ] **Step 2: Run and verify RED because the corpus file does not exist**
 
 ```bash
 pytest tests/test_lineage_calibration_v04.py -v
@@ -730,7 +709,7 @@ rel-010-011  010 -> 011  decomposes
 rel-011-012  011 -> 012  operationalizes
 ```
 
-Use full `chat-2026-08-29-NNN` endpoint IDs. Assign relation timestamps in listed order from `2026-08-29T18:30:00-03:00` to `2026-08-29T18:40:00-03:00`, increasing one minute each record. `contrasts` remains absent from this real corpus; synthetic contract tests cover it rather than manufacturing an editorially weak edge.
+Use full `chat-2026-08-29-NNN` endpoint IDs. Assign relation timestamps in listed order from `2026-08-29T18:30:00-03:00` to `2026-08-29T18:40:00-03:00`, increasing one minute each record. `contrasts` remains absent from this real corpus; synthetic contract tests cover it rather than manufacturing a weak editorial edge.
 
 - [ ] **Step 5: Test referential integrity and atomic import**
 
@@ -767,16 +746,13 @@ git commit -m "data: add Question Lineage v0.4 calibration corpus"
 ```python
 nodes, relations = load_lineage_bundle("corpus/question-lineage-v0.4.jsonl")
 lineage_store.insert_bundle(nodes, relations)
-
 profiles = load_profiles("corpus/chat-2026-08-29.jsonl", "jsonl")
 profile_store.insert_many(profiles)
-
 observations = load_learning_observations(
     "corpus/learning-frontier-chat-2026-08-29-v0.3.jsonl",
     "jsonl",
 )
 learning_store.insert_many(observations)
-
 pack = build_context_pack(
     "chat-2026-08-29-012",
     lineage_store,
@@ -833,13 +809,7 @@ pytest tests/test_models.py tests/test_profile_storage.py tests/test_learning_st
 
 - [ ] **Step 6: Update README from observed behavior**
 
-Add a concise v0.4 section showing:
-
-```text
-QuestionNode -> QuestionRelation -> bounded lineage -> Context Pack
-```
-
-Document these commands:
+Add a concise v0.4 section showing `QuestionNode -> QuestionRelation -> bounded lineage -> Context Pack` and document:
 
 ```bash
 question-radar lineage import corpus/question-lineage-v0.4.jsonl
@@ -870,7 +840,7 @@ Expected: compile/install/help succeed, `git diff --check` prints nothing, and t
 
 - [ ] **Step 8: Run the acceptance workflow on a temporary DB**
 
-On Linux/macOS:
+Linux/macOS:
 
 ```bash
 TMP_DIR="$(mktemp -d)"
