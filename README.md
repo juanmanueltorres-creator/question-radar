@@ -1,67 +1,93 @@
 # Question Radar
 
-**A small Python system for turning questions into structured, inspectable data.**
+> **Education records answers. Question Radar preserves the questions that make the next investigation possible.**
 
-Question Radar helps answer four practical things:
+We routinely store grades, assignments, correct answers, mistakes, tickets, search results, and chat responses. We much less often preserve **how a question changes**: what it is trying to understand, what assumptions it carries, what evidence it needs, and what stronger question follows.
 
-1. **What kind of question is this?**
-2. **Is it ready to answer or investigate?**
-3. **What assumptions or evidence are still missing?**
-4. **What stronger question should come next?**
+Question Radar is a small, local-first Python system for turning questions into structured, inspectable data — **without turning them into a score of the person asking them**.
 
-It also tracks how questions evolve over time, so repeated doubts can become useful evidence instead of just another chat message.
+**Current `main`: v0.3 · Question Profiles + Personal Learning Frontier**
 
-> **Question Radar evaluates questions, not people.**
-
-**Stack:** Python 3.11+ · SQLite · CLI · JSONL/CSV · standard library runtime only
+**Stack:** Python 3.11+ · SQLite · CLI · JSONL/CSV · standard-library runtime only
 
 ---
 
-## What it does
+## Why questions?
 
-A raw question can be useful, but it often mixes together context, assumptions, uncertainty, and intent.
+A good answer can close a task. A good question can open an investigation.
 
-Question Radar makes those parts explicit.
+That distinction matters because educational and evaluation systems need outputs that can be recorded and compared, while inquiry often starts from something harder to standardize: uncertainty, a missing assumption, a contradiction, or a question that does not yet have a clean answer.
+
+Question Radar does **not** claim that schools are universally hostile to curiosity or that tests are inherently bad. The narrower critique is this:
+
+> **What is easy to grade can become easier to preserve than what is valuable to investigate.**
+
+Research gives that concern some grounding:
+
+- **Chin & Osborne (2008)** review student questioning in science and describe students' questions as an important resource for meaningful learning and scientific inquiry. They also note that much of this potential remains untapped. [DOI: 10.1080/03057260701828101](https://doi.org/10.1080/03057260701828101)
+- **Graesser & Person (1994)** found student questions were approximately **240× as frequent in tutoring as in classroom settings** in the environments they studied. After students gained tutoring experience, question **quality** correlated positively with achievement, while question frequency did not. [DOI: 10.3102/00028312031001104](https://doi.org/10.3102/00028312031001104)
+- **OECD PISA 2022, Volume V** reports that only **47%** of students across OECD countries frequently ask questions when they do not understand mathematics material; among low performers, the average is below 40%. The OECD treats active questioning as an important learning strategy. [PISA 2022 Results — Learning strategies](https://www.oecd.org/en/publications/pisa-2022-results-volume-v_c2e44201-en/full-report/component-10.html)
+- **Au (2007)** synthesized 49 qualitative studies of high-stakes testing. The most common pattern was curriculum narrowing, fragmentation into test-related knowledge, and more teacher-centred pedagogy, while also noting important counterexamples depending on test design. [DOI: 10.3102/0013189X07306523](https://doi.org/10.3102/0013189X07306523)
+
+The point is not to reward people for asking *more* questions. It is to make the **purpose, formulation, evidence needs, and evolution of questions visible**.
+
+---
+
+## What Question Radar does
 
 ```text
-"¿Por qué seguimos preguntando lo mismo?"
-                ↓
+raw question
+     ↓
 question type + readiness
-                ↓
+     ↓
 formulation profile
-                ↓
+     ↓
 assumptions + evidence needed
-                ↓
+     ↓
 stronger next question
-                ↓
+     ↓
 optional learning observation
 ```
 
-That makes questions easier to compare, refine, store, audit, and revisit later.
+It currently helps answer four practical questions:
 
-The project is intentionally transparent: there is no hidden learner score and no opaque model deciding what somebody "knows".
+1. **What kind of question is this?**
+2. **Is it ready to answer, ready to investigate, or missing context?**
+3. **What assumptions or evidence still need to be surfaced?**
+4. **What stronger question could come next?**
 
----
-
-## What this project demonstrates
-
-- **Versioned data contracts** with backward compatibility across v0.1, v0.2, and v0.3.
-- **Strict runtime validation** for required fields, closed vocabularies, numeric ranges, timestamps, and malformed input.
-- **Normalized SQLite storage** with separate tables for historical evaluations, typed profiles, and learning observations.
-- **Ordered evidence relationships** preserved across database and JSONL round trips.
-- **CLI design** with namespaced commands for scoring, profiling, and learning-frontier workflows.
-- **Explicit import/export boundaries** so local data stays local unless it is intentionally exported.
-- **Regression and end-to-end testing** across models, persistence, serialization, CLI behavior, calibration corpora, and historical compatibility.
-
-No external API, paid service, database server, LLM runtime, or account is required.
+The system is deliberately transparent. There is no external LLM deciding what somebody knows, no learner ranking, and no hidden intelligence or mastery score.
 
 ---
 
-## Example: typed question profile
+## Not all questions should compete on one leaderboard
 
-A v0.2 profile does not ask whether a question is simply "good" or "bad".
+Question Radar does not assume that a factual question, a diagnostic question, and a philosophical question should be judged by the same notion of "depth".
 
-It records what the question is trying to do and how well it is formulated for that purpose.
+The v0.2 profile separates **question type** from **formulation quality for that purpose**.
+
+Current types include:
+
+```text
+factual_conceptual
+operational_diagnostic
+scientific_explanatory
+decision_risk
+epistemological_meta
+normative_political
+generative_philosophical
+```
+
+Readiness is also explicit:
+
+```text
+ready_to_answer
+ready_to_investigate
+needs_context
+exploratory
+```
+
+A profile can then describe clarity, boundedness, investigability, epistemic openness, purpose fit, assumptions, evidence requirements, and a possible next question.
 
 ```json
 {
@@ -77,33 +103,31 @@ It records what the question is trying to do and how well it is formulated for t
 }
 ```
 
-A factual question and a philosophical question are not forced into the same global leaderboard. The score only describes **formulation quality for the declared purpose**.
+`formulation_score` is **not** a score of the person and is not used as a global ranking across question types.
 
 ---
 
-## Example: Personal Learning Frontier
+## Personal Learning Frontier
 
-v0.3 adds a second layer: evidence-backed observations about how a sequence of questions is changing.
-
-```text
-question-1 ──┐
-question-2 ──┼──> LearningObservation
-question-3 ──┘
-
-concept: question_evaluation_models
-state: consolidating
-confidence: medium
-```
-
-The important distinction is:
+v0.3 adds a separate evidence-first layer for tracking how questions around a concept appear to change over time.
 
 ```text
-repeated question ≠ proven learning gap
+question A ──┐
+question B ──┼──> LearningObservation
+question C ──┘
 ```
 
-Repetition can also mean a weak previous explanation, disagreement, changed context, or a genuinely unresolved problem.
+The key rule is:
 
-So the system stores a **revisable hypothesis plus the question IDs that support it** instead of making a diagnosis about the person.
+```text
+repeated question != proven learning gap
+```
+
+A repeated question may reflect a weak previous explanation, disagreement, changed context, missing evidence, or a genuinely unresolved concept.
+
+So Question Radar stores a **revisable observation plus the question IDs that support it**, rather than diagnosing the learner.
+
+Possible gap types include conceptual, terminology, procedural, connection, evidence, and transfer. Observation states remain revisable: `possible_gap`, `recurring_gap`, `consolidating`, `applied`, and `no_longer_observed`.
 
 ---
 
@@ -113,11 +137,10 @@ So the system stores a **revisable hypothesis plus the question IDs that support
 Question Radar
 │
 ├── v0.1 QuestionEvaluation
-│   └── historical five-dimension scoring
+│   └── frozen historical five-dimension rubric
 │
 ├── v0.2 QuestionProfile
-│   ├── question type
-│   ├── readiness
+│   ├── type + readiness
 │   ├── formulation dimensions
 │   ├── assumptions
 │   ├── evidence required
@@ -131,53 +154,13 @@ Question Radar
     └── ordered evidence question IDs
 ```
 
-Persistence is local SQLite:
+Persistence is local SQLite. Historical versions coexist without rewriting their contracts.
 
-```text
-evaluations
-question_profiles_v02
-learning_observations_v03
-learning_observation_evidence_v03
-```
-
-The three versions can coexist in the same database without ID collisions between their separate contracts.
-
----
-
-## Tests & verification
-
-The repository is tested as a small software system, not only as a collection of scoring examples.
-
-**Latest verified suite: 170 tests passing.**
-
-Coverage includes:
-
-- v0.1 historical model and CLI behavior;
-- v0.2 profile validation and score consistency;
-- v0.3 `LearningObservation` validation;
-- timezone-aware timestamp checks;
-- SQLite insert/read round trips;
-- normalized evidence ordering;
-- duplicate and malformed input rejection;
-- JSONL/CSV serialization where supported;
-- CLI `add`, `list`, `show`, `top`, `frontier`, `import`, and `export` flows;
-- compatibility between v0.1, v0.2, and v0.3 in one SQLite database;
-- public calibration corpus validation;
-- end-to-end learning-frontier import → storage → render → export flow.
-
-Run the full suite:
-
-```bash
-pytest -q
-```
-
-There is currently **no GitHub Actions workflow**, so this README does not present the local test run as remote CI.
+The runtime intentionally has **no third-party dependencies**. Development uses `pytest`.
 
 ---
 
 ## Quick start
-
-Requires Python 3.11+.
 
 ```bash
 python -m venv .venv
@@ -192,42 +175,20 @@ python -m pip install -e ".[dev]"
 pytest -q
 ```
 
----
-
-## CLI
-
-### v0.1 — historical evaluations
+Example CLI flows:
 
 ```bash
-question-radar add examples/evaluation.example.json
-question-radar list
-question-radar top --limit 10
-question-radar import questions.jsonl --format jsonl
-question-radar export exports/questions.csv --format csv
-```
-
-### v0.2 — typed question profiles
-
-```bash
+# typed profiles
 question-radar profile add examples/profile.example.json
 question-radar profile list
 question-radar profile top --type factual_conceptual --limit 10
-question-radar profile import corpus/anti-ia-calibration-v0.2.jsonl --format jsonl
-question-radar profile export exports/profiles.csv --format csv
-```
 
-### v0.3 — Personal Learning Frontier
-
-```bash
+# learning observations
 question-radar learning add examples/learning_observation.example.json
-question-radar learning list
-question-radar learning show learning-001
 question-radar learning frontier
-question-radar learning import corpus/learning-frontier-chat-2026-08-29-v0.3.jsonl --format jsonl
-question-radar learning export exports/learning.jsonl --format jsonl
 ```
 
-Use a different local database at any time:
+Use another local database with:
 
 ```bash
 question-radar --db /path/to/questions.sqlite3 profile list
@@ -235,118 +196,67 @@ question-radar --db /path/to/questions.sqlite3 profile list
 
 ---
 
-## Versioned contracts
+## Data and privacy boundaries
 
-### v0.1 — frozen historical score
+Question Radar is local-first by design:
 
-Dimensions, each 0–5:
+- SQLite databases are ignored by Git;
+- questions become public only through explicit export/share actions;
+- no complete chat history is ingested automatically;
+- no API key or external account is required;
+- no user identity model or learner ranking exists;
+- published corpora are calibration judgments, not truth labels and not scores of people.
 
-- `clarity`
-- `depth`
-- `investigability`
-- `assumption_challenge`
-- `connections`
+The `corpus/` directory contains intentionally public calibration datasets for the versioned contracts.
+
+---
+
+## Verification
+
+The merged v0.1–v0.3 system has been exercised through model, SQLite, serialization, CLI, calibration, privacy, and end-to-end regression tests.
+
+The latest verified local suite reported for the merged v0.3 work is **170 tests passing**.
+
+There is currently **no GitHub Actions workflow**, so local verification is not presented as remote CI.
+
+---
+
+## In development — Question Lineage v0.4
+
+Question Lineage is implemented in an **open pull request and is not part of `main` yet**.
+
+Its direction is to preserve explicit relationships between questions such as:
 
 ```text
-score = round(sum(dimensions) / 25 * 100)
+Question A
+    ↓ challenges_assumption
+Question B
+    ↓ decomposes
+Question C
+    ↓ operationalizes
+Question D
 ```
 
-See `rubric/v0.1.json` and `examples/evaluation.example.json`.
+The proposed v0.4 layer adds stable question nodes, explicit directed relations, bounded cycle-safe traversal, and deterministic Context Packs that can assemble relevant question history without silently inferring new relations.
 
-### v0.2 — typed profile
-
-Question types:
-
-- `factual_conceptual`
-- `operational_diagnostic`
-- `scientific_explanatory`
-- `decision_risk`
-- `epistemological_meta`
-- `normative_political`
-- `generative_philosophical`
-
-Readiness:
-
-- `ready_to_answer`
-- `ready_to_investigate`
-- `needs_context`
-- `exploratory`
-
-Formulation dimensions, each 0–5:
-
-- `clarity`
-- `boundedness`
-- `investigability`
-- `epistemic_openness`
-- `purpose_fit`
-
-```text
-formulation_score =
-round((clarity + boundedness + investigability + epistemic_openness + purpose_fit) / 25 * 100)
-```
-
-Descriptive traits such as `depth`, `connections`, and `generativity` are stored separately and do not affect that score.
-
-See `rubric/v0.2.json` and `examples/profile.example.json`.
-
-### v0.3 — learning observations
-
-Gap types:
-
-- `conceptual`
-- `terminology`
-- `procedural`
-- `connection`
-- `evidence`
-- `transfer`
-
-States:
-
-- `possible_gap`
-- `recurring_gap`
-- `consolidating`
-- `applied`
-- `no_longer_observed`
-
-Confidence:
-
-- `low`
-- `medium`
-- `high`
-
-See `examples/learning_observation.example.json` and `corpus/learning-frontier-chat-2026-08-29-v0.3.jsonl`.
+Until that work is reviewed and merged, **v0.3 remains the canonical public implementation**.
 
 ---
 
-## Public calibration data
+## What Question Radar is not
 
-The `corpus/` directory contains intentionally published calibration data.
+It is not:
 
-Current datasets include:
+- a student grading system;
+- an intelligence, mastery, curiosity, or creativity score;
+- a claim that question quality can be reduced to one universal number;
+- an automatic diagnosis of learning deficits;
+- an LLM judge of people;
+- automatic chat surveillance;
+- a replacement for teachers, tutors, researchers, or domain review.
 
-- `anti-ia-seed-v0.1.jsonl`
-- `anti-ia-calibration-v0.2.jsonl`
-- `chat-2026-08-29.jsonl`
-- `learning-frontier-chat-2026-08-29-v0.3.jsonl`
+It is a small experiment in treating **questions themselves as durable learning and research artifacts**.
 
-They are **calibration judgments, not truth labels and not scores of people**.
+## License
 
----
-
-## Privacy by default
-
-- SQLite data stays local and is ignored by Git.
-- Questions become public only through explicit export and commit/share actions.
-- No API keys or secrets are required.
-- No complete chat history is ingested automatically.
-- No user identity model, learner ranking, intelligence score, or mastery percentage exists.
-
----
-
-## Scope
-
-Question Radar intentionally stays small.
-
-Not included in the current version: web frontend, Supabase, authentication, embeddings, LangGraph, external LLM API calls, automatic chat scraping, multi-user analytics, or direct GeoPlatform / Anti IA runtime integration.
-
-The current focus is the core data model: **questions → profiles → evidence → stronger questions → revisable learning observations**.
+MIT License.
