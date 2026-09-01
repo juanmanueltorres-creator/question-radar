@@ -1,6 +1,7 @@
 import json
 from pathlib import Path
 import sqlite3
+import subprocess
 
 from question_radar import cli_v06 as cli
 from question_radar.retrieval import CorpusEntry, retrieve_candidates
@@ -126,3 +127,18 @@ def test_cli_retrieval_missing_database_fails_closed(tmp_path: Path, capsys):
     assert exit_code == 2
     assert "database does not exist" in captured.err
     assert not db.exists()
+
+
+def test_installed_cli_exposes_retrieval_help_commands():
+    for args in (
+        ["retrieval", "--help"],
+        ["retrieval", "compare", "--help"],
+    ):
+        completed = subprocess.run(
+            ["question-radar", *args],
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+        assert completed.returncode == 0, completed.stderr
+        assert "usage:" in completed.stdout.lower()
