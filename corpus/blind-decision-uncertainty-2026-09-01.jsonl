@@ -1,0 +1,25 @@
+{"id":"decision-blind-2026-09-01-001","question":"¿Cuánta incertidumbre es suficiente para justificar esperar antes de decidir?"}
+{"id":"decision-blind-2026-09-01-002","question":"¿Cuándo obtener más información mejora una decisión y cuándo solamente la retrasa?"}
+{"id":"decision-blind-2026-09-01-003","question":"¿Cómo distinguimos entre datos incompletos y datos suficientes para actuar?"}
+{"id":"decision-blind-2026-09-01-004","question":"¿Qué hacemos cuando las fuentes más confiables disponibles se contradicen?"}
+{"id":"decision-blind-2026-09-01-005","question":"¿Puede una decisión ser razonable aunque después produzca un resultado malo?"}
+{"id":"decision-blind-2026-09-01-006","question":"¿Cómo debería evaluarse una decisión cuando no sabemos qué habría ocurrido si se hubiera elegido otra opción?"}
+{"id":"decision-blind-2026-09-01-007","question":"¿Qué pesa más cuando el tiempo es limitado: la probabilidad de equivocarse o el costo de no actuar?"}
+{"id":"decision-blind-2026-09-01-008","question":"¿Cuándo la experiencia de una persona experta debería pesar más que un modelo que indica lo contrario?"}
+{"id":"decision-blind-2026-09-01-009","question":"¿Cómo sabemos si una persona experta está reconociendo un patrón real o simplemente confiando demasiado en experiencias anteriores?"}
+{"id":"decision-blind-2026-09-01-010","question":"¿Puede un modelo más preciso producir peores decisiones si quienes lo usan no entienden cuándo falla?"}
+{"id":"decision-blind-2026-09-01-011","question":"¿Qué ocurre cuando los riesgos más fáciles de medir no son los riesgos más importantes?"}
+{"id":"decision-blind-2026-09-01-012","question":"¿Cómo cambia una decisión cuando equivocarse en una dirección es mucho más costoso que equivocarse en la otra?"}
+{"id":"decision-blind-2026-09-01-013","question":"¿Quién decide qué nivel de riesgo es aceptable cuando las consecuencias afectan a personas distintas de quienes toman la decisión?"}
+{"id":"decision-blind-2026-09-01-014","question":"¿Qué debería ocurrir cuando dos personas competentes llegan a conclusiones diferentes utilizando exactamente la misma evidencia?"}
+{"id":"decision-blind-2026-09-01-015","question":"¿Cuánto debería importar que una decisión pueda revertirse después?"}
+{"id":"decision-blind-2026-09-01-016","question":"¿Puede ser racional tomar una decisión con poca evidencia simplemente porque es barata de revertir?"}
+{"id":"decision-blind-2026-09-01-017","question":"¿En qué momento una predicción deja de ser útil porque las condiciones sobre las que fue construida ya cambiaron?"}
+{"id":"decision-blind-2026-09-01-018","question":"¿Cómo detectamos que información aparentemente precisa está desactualizada de una forma que importa para la decisión?"}
+{"id":"decision-blind-2026-09-01-019","question":"¿Qué incentivos hacen que una organización oculte, minimice o exagere la incertidumbre existente?"}
+{"id":"decision-blind-2026-09-01-020","question":"¿Documentar todas las dudas mejora las decisiones o puede convertirse en una forma de evitar responsabilidad?"}
+{"id":"decision-blind-2026-09-01-021","question":"¿Cómo cambia el comportamiento de las personas cuando saben que después alguien intentará identificar quién fue responsable de una decisión equivocada?"}
+{"id":"decision-blind-2026-09-01-022","question":"¿Qué debería hacer un sistema automatizado cuando no tiene suficiente evidencia para distinguir entre varias acciones razonables?"}
+{"id":"decision-blind-2026-09-01-023","question":"¿Una inteligencia artificial debería intentar reducir la incertidumbre, representarla o simplemente decidir a pesar de ella?"}
+{"id":"decision-blind-2026-09-01-024","question":"¿Podría disponer de más datos empeorar una decisión al aumentar el ruido, las contradicciones o la confianza injustificada?"}
+{"id":"decision-blind-2026-09-01-025","question":"¿Tiene sentido hablar de una única decisión “correcta” cuando distintas personas pueden valorar de manera diferente los mismos riesgos y consecuencias?"}
