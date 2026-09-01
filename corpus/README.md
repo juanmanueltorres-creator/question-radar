@@ -57,3 +57,13 @@ The generating chat was not given the Question Radar repository, rubric, lineage
 This file is **not canonical lineage and is not imported as master questions**. It is a v0.5 calibration input used to test corpus-relative retrieval, residual-token evidence, and provisional clustering without contaminating the corpus it is compared against.
 
 In particular, the benchmark exposed a useful failure mode for simple “best question” selection: a highly rated question may already be represented by the corpus, while a less obvious question may introduce a residual mechanism such as obsolescence or adaptive forgetting. v0.5 surfaces evidence for review; it does not promote that interpretation automatically.
+
+## Blind decision-under-uncertainty benchmark — 2026-09-01
+
+`blind-decision-uncertainty-2026-09-01.jsonl` preserves the first 25-question output of a separate blind chat about decision-making under incomplete, contradictory, uncertain, or changing evidence.
+
+The generating chat was instructed not to use prior conversations, repositories, memory, external research, or Question Radar context. The 25 question strings are preserved exactly and the file contains only candidate IDs plus raw questions.
+
+This file is **calibration input, not canonical corpus**. It was generated after v0.5 had already been merged and exposed a retrieval-recall failure: v0.5 treated every blind question as a possible new branch even though v0.2 already contained relevant prior questions outside the v0.4 lineage snapshot.
+
+The primary v0.6 golden regression uses blind question 7 — `¿Qué pesa más cuando el tiempo es limitado: la probabilidad de equivocarse o el costo de no actuar?` — and requires candidate retrieval to surface `qv2-cal-013`, `¿Cuál es el costo de actuar y de no actuar?`, within the top five results. The regression asserts retrieval only; it does not claim semantic equivalence, a lineage relation, or master promotion.
