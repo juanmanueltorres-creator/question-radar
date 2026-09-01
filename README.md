@@ -350,7 +350,7 @@ v0.5 and v0.6 add **no SQLite tables**. Novelty and retrieval packs are derived,
 
 The repository is tested as a small software system, not only as a collection of scoring examples.
 
-**Latest verified CI suite: 299 tests passing on Python 3.11.**
+**Latest verified CI suite: 300 tests passing on Python 3.11.**
 
 Coverage includes:
 
@@ -379,6 +379,7 @@ Coverage includes:
 - deterministic v0.6 Markdown and JSON rendering;
 - cross-version duplicate-ID isolation;
 - CLI retrieval fail-closed and byte-for-byte database non-mutation;
+- installed `question-radar retrieval --help` and `retrieval compare --help` execution;
 - exact preservation of the 25-question decision-under-uncertainty blind benchmark;
 - golden Q7 → `qv2-cal-013` top-five candidate retrieval;
 - JSONL/CSV serialization where supported;
