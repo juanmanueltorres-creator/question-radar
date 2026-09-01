@@ -81,6 +81,24 @@ def _round_metric(value: float) -> float:
     return round(value, 6)
 
 
+def _validate_gold_references(
+    gold_cases: tuple[GoldCase, ...],
+    corpus: tuple[CorpusEntry, ...],
+) -> None:
+    corpus_refs = {
+        (entry.source_version, entry.id)
+        for entry in corpus
+    }
+    for case in gold_cases:
+        for judgment in case.judgments:
+            ref = (judgment.source_version, judgment.entry_id)
+            if ref not in corpus_refs:
+                raise ValueError(
+                    "gold judgment reference not found in evaluation corpus: "
+                    f"{judgment.source_version}:{judgment.entry_id}"
+                )
+
+
 def _evaluate_case(
     case: GoldCase,
     corpus: tuple[CorpusEntry, ...],
@@ -188,6 +206,8 @@ def evaluate_benchmark(
 ) -> BenchmarkEvaluation:
     if k < 1:
         raise ValueError("k must be at least 1")
+
+    _validate_gold_references(gold_cases, corpus)
 
     evaluations = tuple(
         _evaluate_case(case, corpus, k)
