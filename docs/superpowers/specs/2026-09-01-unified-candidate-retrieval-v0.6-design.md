@@ -60,6 +60,8 @@ Allowed values:
 
 IDs retain their original IDs. No new persisted unified-corpus table is created.
 
+An ID is only guaranteed unique inside its historical source contract. v0.6 therefore must not use `entry.id` alone as an internal document key: a v0.2 profile and a v0.4 node may legitimately share the same string ID. Retrieval treats every `CorpusEntry` as an independent document and uses source metadata as a deterministic tie-break when IDs collide.
+
 ## Read-only corpus loading
 
 Create `retrieval_storage.py` with a dedicated SQLite read-only snapshot loader.
@@ -141,7 +143,9 @@ Ranking is deterministic:
 
 1. `bm25_score` descending;
 2. `jaccard_score` descending;
-3. `entry.id` ascending.
+3. `entry.id` ascending;
+4. `entry.source_version` ascending when IDs tie;
+5. `entry.source_kind` ascending when source versions also tie.
 
 BM25 is the primary retrieval signal because it rewards rare informative terms without requiring a high global overlap ratio.
 
@@ -182,9 +186,9 @@ Contract:
 - `review_required is True`
 - no persistence side effects.
 
-## CLI
+## CLI isolation
 
-Add a new namespace rather than silently changing `novelty`:
+Add a new public namespace rather than silently changing `novelty`:
 
 ```bash
 question-radar retrieval compare \
@@ -193,7 +197,9 @@ question-radar retrieval compare \
   --format markdown
 ```
 
-Supported formats:
+The installed `question-radar` script points to a small `cli_v06.py` facade. The facade handles only the `retrieval` namespace; every other argument vector is delegated unchanged to the historical `cli.main`. This keeps v0.1–v0.5 command behavior isolated from the new parser and prevents the legacy CLI module from accumulating another unrelated responsibility.
+
+Supported retrieval formats:
 
 - `markdown`
 - `json`
@@ -232,12 +238,14 @@ qv2-cal-013 ¿Cuál es el costo de actuar y de no actuar?
 
 Requirement:
 
-- when the public v0.2 calibration corpus is loaded into the test database, `qv2-cal-013` must appear in the **top 5** retrieval results for Q7;
-- the test does not assert equivalence, relation type, novelty, or promotion.
+- against the public v0.2 calibration corpus, `qv2-cal-013` must appear in the **top 5** retrieval results for Q7;
+- the test does not assert equivalence, relation type, novelty, or promotion;
+- no benchmark-specific boost, synonym, question ID, or semantic rule may be introduced to make the regression pass.
 
 ## Compatibility
 
 - v0.5 `novelty compare` and `novelty batch` remain behaviorally unchanged;
+- historical CLI commands continue to execute through the existing `cli.main` implementation;
 - v0.6 creates no SQLite tables;
 - v0.2 and v0.4 storage schemas remain unchanged;
 - runtime dependencies remain `[]`;
@@ -250,8 +258,7 @@ Requirement:
 - limit < 1 -> `ValueError("limit must be at least 1")`;
 - missing database -> `ValueError("database does not exist: ...")`;
 - no supported corpus tables -> `ValueError("no supported retrieval corpus tables found")`;
-- SQLite read error -> `RuntimeError` with the database path;
-- malformed blind candidate JSONL -> fail fast with line-aware `ValueError`.
+- SQLite read error -> `RuntimeError` with the database path.
 
 ## Testing strategy
 
@@ -261,10 +268,11 @@ Tests cover:
 - read-only loading from v0.2 only, v0.4 only, and mixed databases;
 - no database creation or migration;
 - BM25 deterministic scoring and tie-breaking;
+- independent handling of cross-version entries with the same ID;
 - token contribution evidence;
 - v0.5 Jaccard evidence remains visible;
 - deterministic Markdown/JSON rendering;
-- CLI read-only behavior;
+- isolated CLI facade and read-only retrieval behavior;
 - golden Q7 -> `qv2-cal-013` top-5 regression;
 - exact preservation of all 25 blind benchmark questions;
 - full historical suite compatibility;
