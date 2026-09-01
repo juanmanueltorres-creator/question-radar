@@ -2,7 +2,7 @@ import json
 from pathlib import Path
 import sqlite3
 
-from question_radar import cli
+from question_radar import cli_v06 as cli
 from question_radar.retrieval import CorpusEntry, retrieve_candidates
 from question_radar.retrieval_export import (
     render_retrieval_json,
