@@ -6,7 +6,7 @@ We routinely store grades, assignments, correct answers, mistakes, tickets, sear
 
 Question Radar is a small, local-first Python system for turning questions into structured, inspectable data — **without turning them into a score of the person asking them**.
 
-**Version:** v0.6 · Unified Candidate Retrieval + v0.5 Corpus-Relative Novelty
+**Version:** v0.7 · Retrieval Calibration & Abstention + v0.6 Unified Candidate Retrieval
 
 **Stack:** Python 3.11+ · SQLite · CLI · JSONL/CSV · standard-library runtime only
 
@@ -54,11 +54,17 @@ deterministic Context Pack
 
 new candidate question
      ↓
+retrieval-specific normalization
+     ↓
 unified candidate retrieval (v0.2 + v0.4)
      ↓
-BM25 evidence + v0.5 Jaccard evidence
+coverage + BM25 + frozen v0.5 Jaccard evidence
      ↓
-retrieved prior questions + residual terms
+┌─────────────────────┬──────────────────────┐
+│ lexical evidence    │ no lexical evidence  │
+│ present             │                      │
+▼                     ▼
+ranked candidates     ABSTAIN
      ↓
 human review
      ↓
@@ -78,14 +84,15 @@ Question Radar helps answer practical questions such as:
 7. **Which existing questions are lexically close to a new candidate, and what evidence explains that proximity?**
 8. **What terms remain unexplained by the nearest corpus questions and may deserve human review as a new mechanism or branch?**
 9. **Which prior questions exist outside the lineage graph and should be reviewed before treating a candidate as new?**
+10. **When is there no lexical retrieval evidence at all, so the system should abstain rather than fabricate a shortlist?**
 
-The system is deliberately transparent. There is no external LLM deciding what somebody knows, no learner ranking, no hidden intelligence or mastery score, and no automatic semantic relation written by v0.5 or v0.6.
+The system is deliberately transparent. There is no external LLM deciding what somebody knows, no learner ranking, no hidden intelligence or mastery score, and no automatic semantic relation written by v0.5, v0.6, or v0.7.
 
 ---
 
 ## What this project demonstrates
 
-- **Versioned data contracts** with backward compatibility across v0.1, v0.2, v0.3, v0.4, v0.5, and v0.6 derived outputs.
+- **Versioned data contracts** with backward compatibility across v0.1, v0.2, v0.3, v0.4, v0.5, v0.6, and v0.7 derived outputs.
 - **Strict runtime validation** for required fields, closed vocabularies, numeric ranges, timestamps, and malformed input.
 - **Normalized SQLite storage** with separate tables for historical evaluations, typed profiles, learning observations, and question lineage.
 - **Ordered evidence relationships** preserved across database and JSONL round trips.
@@ -93,10 +100,13 @@ The system is deliberately transparent. There is no external LLM deciding what s
 - **Derived Context Packs** with deterministic Markdown and JSON output.
 - **Read-only corpus-relative novelty packs** with inspectable lexical overlap and residual-token evidence.
 - **Unified read-only retrieval** across v0.2 profiles and v0.4 lineage without creating a new persistence layer.
-- **Dependency-free BM25 retrieval** with per-token contribution evidence and v0.5 Jaccard as a secondary signal.
+- **Dependency-free BM25 retrieval** with per-token contribution evidence and frozen v0.5 Jaccard as a secondary signal.
+- **Retrieval-specific lexical normalization** that does not silently alter the frozen novelty contract.
+- **Coverage-aware retrieval evidence** with matched-token count and query coverage.
+- **Explicit abstention** when the lexical layer finds no supported overlap.
 - **Fail-closed SQLite reads** using `mode=ro`: analysis never creates a missing database or migrates a legacy one.
 - **Provisional lexical clustering** that remains an analysis artifact rather than a persisted claim.
-- **CLI isolation** through a v0.6 facade that handles retrieval while delegating historical commands unchanged.
+- **CLI isolation** through the retrieval facade while historical commands remain delegated unchanged.
 - **Explicit import/export boundaries** so local data stays local unless it is intentionally exported.
 - **Regression and end-to-end testing** across models, persistence, serialization, CLI behavior, blind calibration inputs, and historical compatibility.
 
@@ -254,7 +264,7 @@ question_nodes_v04 ─────┘                     + v0.5 Jaccard evidenc
 
 No unified table is persisted. SQLite is opened through `mode=ro`, and a database containing only v0.2 or only v0.4 is valid. A missing database is not created.
 
-BM25 is the primary ranking signal:
+BM25 is the primary statistical retrieval signal:
 
 ```text
 k1 = 1.5
@@ -262,28 +272,61 @@ b = 0.75
 idf(t) = ln(1 + (N - df(t) + 0.5) / (df(t) + 0.5))
 ```
 
-For each retrieved question, v0.6 reports:
-
-- raw BM25 score;
-- the existing v0.5 weighted-Jaccard score;
-- matched query tokens;
-- residual query tokens;
-- per-token term frequency, document frequency, and BM25 contribution;
-- source version/kind and available provenance.
+For each retrieved question, v0.6 reports raw BM25, the frozen v0.5 weighted-Jaccard score, matched and residual query terms, per-token BM25 contributions, and source/provenance.
 
 The central boundary is:
 
 > **Retrieval means “review this prior question before calling the candidate new.” It does not mean “these questions are semantically equivalent.”**
 
-The decision-under-uncertainty blind benchmark supplies the primary golden regression. Blind Q7 asks:
+The decision-under-uncertainty blind benchmark supplies the original golden regression. Blind Q7 asks:
 
 > ¿Qué pesa más cuando el tiempo es limitado: la probabilidad de equivocarse o el costo de no actuar?
 
-Against the public v0.2 calibration corpus, v0.6 must retrieve `qv2-cal-013` — `¿Cuál es el costo de actuar y de no actuar?` — within the top five. The regression passes without hard-coded IDs, synonym tables, embeddings, semantic boosts, or threshold relaxation.
+Against the public calibration corpus, retrieval must surface `qv2-cal-013` — `¿Cuál es el costo de actuar y de no actuar?` — within the top five without hard-coded IDs, synonym tables, embeddings, semantic boosts, or threshold relaxation.
 
-The installed CLI is routed through `cli_v06.py`. That facade handles only the new `retrieval` namespace and delegates every historical command unchanged to the original `cli.main` implementation.
+---
 
-v0.6 still performs **no stemming, synonym expansion, embeddings, vector search, LLM runtime inference, automatic relation creation, or master promotion**.
+## v0.7: Retrieval Calibration & Abstention
+
+Blind Benchmark #4 showed that corpus visibility was no longer the main problem. BM25 could still promote low-information lexical collisions, simple Spanish plurals could hide useful prior questions, and a zero-overlap query could still receive arbitrary results.
+
+v0.7 gives retrieval a normalization contract separate from v0.5 novelty. It filters additional low-information retrieval terms and applies only a narrow set of noun-focused plural transformations:
+
+```text
+decisiones → decision
+errores     → error
+sensores    → sensor
+sistemas    → sistema
+personas    → persona
+costos      → costo
+```
+
+It is deliberately **not** a general Spanish stemmer. Regression tests preserve forms such as `entienden`, `modifica`, `pierde`, `puedes`, `tomas`, `usas`, and `trabajas` unchanged.
+
+Each result now exposes:
+
+- `matched_token_count`;
+- `query_token_count`;
+- `query_coverage`;
+- BM25 score and per-token contributions;
+- frozen v0.5 Jaccard evidence;
+- residual query tokens;
+- provenance.
+
+Ranking rewards lexical coverage before BM25 rarity. If the entire corpus has zero matched retrieval tokens, v0.7 returns:
+
+```text
+abstained = true
+abstention_reason = no_lexical_evidence
+results = []
+review_required = true
+```
+
+That abstention is not a claim of conceptual novelty. It means only that this lexical retrieval layer found no supported overlap.
+
+Blind Benchmark #4 retains strong labels that fit this scope: Q1 must retrieve `vault-2026-08-31-001`, Q14 must retrieve `qv2-cal-013`, and the previous Blind #3 Q7 regression must remain green. Q16 and Q24 are preserved as diagnostic controls rather than overfit: Q16 gains weak `persona/personas` evidence, while Q24 still depends on the unimplemented verbal relation `entienden/entender`.
+
+v0.7 still adds **no embeddings, vector search, synonym expansion, general verb stemming, LLM runtime inference, automatic relation creation, or master promotion**.
 
 ---
 
@@ -322,12 +365,17 @@ Question Radar
 │   ├── PossibleCluster
 │   └── mandatory human review boundary
 │
-└── v0.6 Unified Candidate Retrieval
-    ├── CorpusEntry
+├── v0.6 Unified Candidate Retrieval
+│   ├── CorpusEntry
+│   ├── read-only v0.2 + v0.4 corpus snapshot
+│   └── BM25 + frozen v0.5 evidence
+│
+└── v0.7 Retrieval Calibration & Abstention
+    ├── retrieval-specific normalization
+    ├── narrow noun-focused morphology
     ├── TokenContribution
-    ├── RetrievalEvidence
-    ├── RetrievalPack
-    ├── read-only v0.2 + v0.4 corpus snapshot
+    ├── RetrievalEvidence + coverage
+    ├── RetrievalPack + abstention
     └── mandatory human review boundary
 ```
 
@@ -342,7 +390,7 @@ question_nodes_v04
 question_relations_v04
 ```
 
-v0.5 and v0.6 add **no SQLite tables**. Novelty and retrieval packs are derived, read-only analysis artifacts. All versions can coexist without rewriting historical contracts.
+v0.5, v0.6, and v0.7 add **no SQLite tables**. Novelty and retrieval packs are derived, read-only analysis artifacts. All versions can coexist without rewriting historical contracts.
 
 ---
 
@@ -350,7 +398,7 @@ v0.5 and v0.6 add **no SQLite tables**. Novelty and retrieval packs are derived,
 
 The repository is tested as a small software system, not only as a collection of scoring examples.
 
-**Latest verified CI suite: 300 tests passing on Python 3.11.**
+**Latest verified implementation CI suite: 316 tests passing on Python 3.11.**
 
 Coverage includes:
 
@@ -371,22 +419,22 @@ Coverage includes:
 - strict candidate JSONL validation, including malformed-input rejection;
 - deterministic v0.5 Markdown and JSON rendering;
 - byte-for-byte SQLite non-mutation checks for existing v0.4 databases;
-- fail-closed tests proving novelty analysis does not create a missing database or migrate a legacy database;
-- challenge prompts requiring both explicit challenge syntax and corpus-neighbor evidence;
-- blind benchmark regressions for software-domain convergence and organizational-memory lexical limits;
+- fail-closed novelty reads;
 - v0.6 unified read-only loading from v0.2-only, v0.4-only, and mixed databases;
 - dependency-free BM25 ranking with inspectable token contributions;
-- deterministic v0.6 Markdown and JSON rendering;
 - cross-version duplicate-ID isolation;
 - CLI retrieval fail-closed and byte-for-byte database non-mutation;
-- installed `question-radar retrieval --help` and `retrieval compare --help` execution;
-- exact preservation of the 25-question decision-under-uncertainty blind benchmark;
-- golden Q7 → `qv2-cal-013` top-five candidate retrieval;
+- installed retrieval help execution;
+- exact preservation of the Blind #3 and Blind #4 question sets;
+- golden Q7 → `qv2-cal-013` retrieval;
+- v0.7 retrieval-specific stopword and plural normalization;
+- explicit guard against accidental conjugated-verb stemming;
+- coverage-aware ranking;
+- explicit zero-evidence abstention;
+- Blind #4 Q1 and Q14 retrieval regressions;
+- deterministic v0.7 Markdown/JSON coverage and abstention output;
 - JSONL/CSV serialization where supported;
-- CLI historical flows plus `novelty` and `retrieval` namespaces;
-- compatibility between v0.1, v0.2, v0.3, v0.4, and derived v0.5/v0.6 analysis;
-- public calibration corpus validation;
-- end-to-end lineage import → storage → traversal → v0.2/v0.3 join → Context Pack flow.
+- compatibility between v0.1–v0.4 persistence and derived v0.5–v0.7 analysis.
 
 Run the full suite:
 
@@ -473,10 +521,6 @@ question-radar novelty compare \
   --limit 5 \
   --format markdown
 
-question-radar novelty compare \
-  "¿Qué cambia cuando programar deja de ser el cuello de botella?" \
-  --format json
-
 question-radar novelty batch corpus/blind-memory-2026-09-01.jsonl \
   --cluster-threshold 0.35 \
   --format markdown
@@ -484,11 +528,11 @@ question-radar novelty batch corpus/blind-memory-2026-09-01.jsonl \
 
 The novelty commands only read existing v0.4 question nodes and relations through SQLite `mode=ro`. They do not insert, update, delete, initialize tables, create lineage, migrate legacy databases, or promote questions.
 
-### v0.6 — unified candidate retrieval
+### v0.7 — calibrated unified candidate retrieval
 
 ```bash
 question-radar retrieval compare \
-  "¿Qué pesa más cuando el tiempo es limitado: la probabilidad de equivocarse o el costo de no actuar?" \
+  "¿Qué debería significar que un sistema funciona bien cuando los costos de equivocarse no son iguales?" \
   --limit 5 \
   --format markdown
 
@@ -497,7 +541,7 @@ question-radar --db /path/to/questions.sqlite3 retrieval compare \
   --format json
 ```
 
-Retrieval reads whichever supported corpus tables already exist (`question_profiles_v02`, `question_nodes_v04`) through SQLite `mode=ro`. It does not initialize missing tables, mutate the database, create semantic relations, or promote masters.
+Retrieval reads whichever supported corpus tables already exist (`question_profiles_v02`, `question_nodes_v04`) through SQLite `mode=ro`. It does not initialize missing tables, mutate the database, create semantic relations, or promote masters. v0.7 may explicitly abstain when no lexical evidence exists.
 
 ---
 
@@ -509,89 +553,40 @@ The original rubric remains frozen as a historical contract. It should not be si
 
 ### v0.2 — `QuestionProfile`
 
-Each profile stores:
-
-- stable `id`;
-- original `question`;
-- `question_type`;
-- `readiness`;
-- five formulation dimensions;
-- `formulation_score`;
-- descriptive traits (`depth`, `connections`, `generativity`);
-- `strengths`;
-- `gap`;
-- `assumptions`;
-- `evidence_required`;
-- `next_question`;
-- optional `topic`;
-- evaluator and rubric version;
-- timestamp.
+Each profile stores stable identity, original question, type/readiness, formulation dimensions, descriptive traits, assumptions, evidence requirements, a possible next question, optional topic, evaluator/rubric version, and timestamp.
 
 ### v0.3 — `LearningObservation`
 
-Each observation stores:
-
-- `concept`;
-- gap type;
-- revisable state;
-- confidence;
-- ordered `evidence_question_ids`;
-- interpretation;
-- suggested next step;
-- created/updated timestamps.
-
-Confidence:
-
-```text
-low
-medium
-high
-```
-
-See `examples/learning_observation.example.json` and `corpus/learning-frontier-chat-2026-08-29-v0.3.jsonl`.
+Each observation stores concept, gap type, revisable state, confidence, ordered evidence question IDs, interpretation, suggested next step, and created/updated timestamps.
 
 ### v0.4 — question lineage
 
-`QuestionNode` stores exactly:
+`QuestionNode` stores exactly `id`, `question`, `source`, `source_ref`, and `created_at`.
 
-- `id`
-- `question`
-- `source`
-- `source_ref`
-- `created_at`
-
-`QuestionRelation` stores exactly:
-
-- `id`
-- `source_question_id`
-- `target_question_id`
-- `relation_type`
-- `created_at`
+`QuestionRelation` stores exactly `id`, `source_question_id`, `target_question_id`, `relation_type`, and `created_at`.
 
 The graph allows semantic cycles but rejects self-relations and exact duplicate edges. Historical questions enter lineage only through explicit import.
 
 ### v0.5 — derived novelty evidence
 
-v0.5 does not add a persisted domain table. Its main derived records are:
+v0.5 adds no persisted domain table. Its main derived records are `SimilarityEvidence`, `NoveltyNeighbor`, `NoveltyPack`, `CandidateQuestion`, and `PossibleCluster`.
 
-- `SimilarityEvidence`
-- `NoveltyNeighbor`
-- `NoveltyPack`
-- `CandidateQuestion`
-- `PossibleCluster`
+`NoveltyPack` always requires human review. Similarity scores are lexical evidence, not semantic-equivalence scores, and provisional interpretations are never written into v0.4 lineage automatically.
 
-`NoveltyPack` always requires human review. Similarity scores are lexical retrieval evidence, not semantic-equivalence scores, and provisional interpretations are never written into v0.4 lineage automatically.
+### v0.6 — unified retrieval corpus
 
-### v0.6 — derived unified retrieval evidence
+v0.6 introduced `CorpusEntry` and unified read-only visibility across v0.2/v0.4. It adds no persisted table.
 
-v0.6 also adds no persisted domain table. Its main derived records are:
+### v0.7 — calibrated retrieval evidence
+
+v0.7 extends the derived retrieval contract with coverage and abstention. Its principal derived records remain:
 
 - `CorpusEntry`
 - `TokenContribution`
 - `RetrievalEvidence`
 - `RetrievalPack`
 
-`RetrievalPack` always requires human review. BM25 and Jaccard scores are retrieval evidence, not probabilities or semantic-equivalence scores. A retrieved question is a candidate to inspect, not an automatically inferred relation.
+`RetrievalPack` always requires human review. BM25, coverage, and Jaccard are retrieval evidence, not probabilities or semantic-equivalence scores. An abstention is likewise a lexical-evidence statement, not proof of novelty.
 
 ---
 
@@ -609,6 +604,7 @@ Current datasets include:
 - `chat-2026-08-31-software-recruiting-ai-lineage-v0.4.jsonl`
 - `blind-memory-2026-09-01.jsonl` — external blind v0.5 calibration input, not canonical lineage
 - `blind-decision-uncertainty-2026-09-01.jsonl` — external blind v0.6 retrieval calibration input, not canonical lineage
+- `blind-system-trust-2026-09-01.jsonl` — external blind v0.7 retrieval calibration input, not canonical lineage
 
 The repository also keeps the software-domain blind experiment in `benchmarks/blind-test-2026-08-31-domain-software.md`.
 
@@ -627,8 +623,8 @@ Question Radar is local-first by design:
 - no user identity model or learner ranking exists;
 - published corpora are calibration judgments or explicit benchmark inputs, not truth labels and not scores of people;
 - v0.4 performs no automatic historical migration or chat ingestion;
-- v0.5 novelty commands use a fail-closed read-only SQLite path and create no automatic semantic relations or promotions;
-- v0.6 retrieval uses a fail-closed read-only SQLite path across v0.2/v0.4 and creates no unified persistence table, semantic relation, or promotion.
+- v0.5 novelty uses fail-closed read-only SQLite and creates no automatic semantic relations or promotions;
+- v0.6/v0.7 retrieval uses fail-closed read-only SQLite across v0.2/v0.4 and creates no unified persistence table, semantic relation, or promotion.
 
 ---
 
@@ -636,9 +632,9 @@ Question Radar is local-first by design:
 
 Question Radar intentionally stays small.
 
-Not included in v0.6: web frontend, Supabase, authentication, embeddings, vector databases, LangGraph, NetworkX, Neo4j, external LLM API calls, automatic chat scraping, automatic relation inference, automatic master promotion, automatic vault/master-library ingestion, multi-user analytics, or direct GeoPlatform / Anti IA runtime integration.
+Not included in v0.7: web frontend, Supabase, authentication, embeddings, vector databases, LangGraph, NetworkX, Neo4j, external LLM API calls, synonym expansion, general language stemming, automatic chat scraping, automatic relation inference, automatic master promotion, automatic vault/master-library ingestion, multi-user analytics, or direct GeoPlatform / Anti IA runtime integration.
 
-The current core model is: **questions → profiles → evidence → revisable learning observations → explicit lineage → deterministic context**, plus **read-only unified retrieval and corpus-relative evidence layers that help a human inspect prior questions before changing the graph**.
+The current core model is: **questions → profiles → evidence → revisable learning observations → explicit lineage → deterministic context**, plus **read-only calibrated retrieval and corpus-relative evidence layers that help a human inspect prior questions before changing the graph**.
 
 ---
 
