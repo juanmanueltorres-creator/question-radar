@@ -1,4 +1,5 @@
 import json
+import sqlite3
 
 from question_radar import cli
 from question_radar.lineage import QuestionNode
@@ -43,6 +44,45 @@ def test_novelty_compare_markdown_is_read_only(tmp_path, capsys):
     assert "memory-master" in output
     assert "No lineage relation or master promotion was created." in output
     assert db_path.read_bytes() == before
+
+
+def test_novelty_compare_does_not_create_missing_database(tmp_path, capsys):
+    db_path = tmp_path / "missing.sqlite3"
+
+    exit_code = cli.main(
+        [
+            "--db",
+            str(db_path),
+            "novelty",
+            "compare",
+            "¿Qué debería recordar una organización?",
+        ]
+    )
+
+    assert exit_code == 2
+    assert not db_path.exists()
+    assert "database does not exist" in capsys.readouterr().err
+
+
+def test_novelty_compare_does_not_migrate_legacy_database(tmp_path, capsys):
+    db_path = tmp_path / "legacy.sqlite3"
+    with sqlite3.connect(db_path) as connection:
+        connection.execute("CREATE TABLE legacy_questions (id TEXT PRIMARY KEY)")
+    before = db_path.read_bytes()
+
+    exit_code = cli.main(
+        [
+            "--db",
+            str(db_path),
+            "novelty",
+            "compare",
+            "¿Qué debería recordar una organización?",
+        ]
+    )
+
+    assert exit_code == 2
+    assert db_path.read_bytes() == before
+    assert "v0.4 lineage tables not found" in capsys.readouterr().err
 
 
 def test_novelty_compare_json_is_deterministic(tmp_path, capsys):
