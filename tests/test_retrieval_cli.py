@@ -37,7 +37,7 @@ def _mixed_db(path: Path) -> None:
         )
 
 
-def test_retrieval_markdown_has_explicit_review_boundary():
+def test_retrieval_markdown_has_explicit_review_boundary_and_coverage():
     corpus = (
         CorpusEntry(
             "q1",
@@ -51,9 +51,12 @@ def test_retrieval_markdown_has_explicit_review_boundary():
 
     rendered = render_retrieval_markdown(pack)
 
-    assert "# Unified Candidate Retrieval v0.6" in rendered
+    assert "# Unified Candidate Retrieval v0.7" in rendered
     assert "## Candidate" in rendered
     assert "## Retrieved Prior Questions" in rendered
+    assert "matched_token_count:" in rendered
+    assert "query_token_count:" in rendered
+    assert "query_coverage:" in rendered
     assert "## Review Boundary" in rendered
     assert "No semantic relation, lineage edge, or master promotion was created." in rendered
     assert rendered.endswith("\n")
@@ -77,10 +80,32 @@ def test_retrieval_json_is_deterministic_and_inspectable():
 
     assert first == second
     assert first.endswith("\n")
-    assert payload["retrieval_version"] == "v0.6"
+    assert payload["retrieval_version"] == "v0.7"
     assert payload["review_required"] is True
+    assert payload["abstained"] is False
+    assert payload["abstention_reason"] is None
     assert payload["results"][0]["entry"]["source_version"] == "v0.2"
     assert payload["results"][0]["token_contributions"]
+    assert payload["results"][0]["matched_token_count"] >= 1
+    assert payload["results"][0]["query_token_count"] >= 1
+    assert 0.0 < payload["results"][0]["query_coverage"] <= 1.0
+
+
+def test_abstention_is_explicit_in_json_and_markdown():
+    corpus = (
+        CorpusEntry("a", "costo actuar", "v0.2", "profile", None),
+        CorpusEntry("b", "memoria trazabilidad", "v0.2", "profile", None),
+    )
+    pack = retrieve_candidates("xilofono marmol orbital", corpus)
+
+    payload = json.loads(render_retrieval_json(pack))
+    markdown = render_retrieval_markdown(pack)
+
+    assert payload["abstained"] is True
+    assert payload["abstention_reason"] == "no_lexical_evidence"
+    assert payload["results"] == []
+    assert "ABSTAINED" in markdown
+    assert "no_lexical_evidence" in markdown
 
 
 def test_cli_retrieval_compare_is_read_only(tmp_path: Path, capsys):
@@ -105,7 +130,7 @@ def test_cli_retrieval_compare_is_read_only(tmp_path: Path, capsys):
     captured = capsys.readouterr()
     payload = json.loads(captured.out)
     assert exit_code == 0
-    assert payload["retrieval_version"] == "v0.6"
+    assert payload["retrieval_version"] == "v0.7"
     assert payload["results"][0]["entry"]["id"] == "qv2-cal-013"
     assert db.read_bytes() == before
 
