@@ -288,7 +288,7 @@ v0.5 adds **no SQLite tables**. Novelty packs and clusters are derived, read-onl
 
 The repository is tested as a small software system, not only as a collection of scoring examples.
 
-**Latest verified CI suite: 277 tests passing on Python 3.11.**
+**Latest verified CI suite: 278 tests passing on Python 3.11.**
 
 Coverage includes:
 
@@ -310,6 +310,7 @@ Coverage includes:
 - deterministic v0.5 Markdown and JSON rendering;
 - byte-for-byte SQLite non-mutation checks for existing v0.4 databases;
 - fail-closed tests proving novelty analysis does not create a missing database or migrate a legacy database;
+- challenge prompts requiring both explicit challenge syntax and corpus-neighbor evidence;
 - blind benchmark regressions for software-domain convergence, organizational-memory residual evidence, exact 25-question preservation, and the known lexical false negative;
 - JSONL/CSV serialization where supported;
 - CLI `add`, `list`, `show`, `top`, `frontier`, `import`, `export`, `lineage`, and `novelty` flows;
