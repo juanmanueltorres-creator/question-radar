@@ -1,238 +1,105 @@
 # Retrieval Calibration & Abstention v0.7 Implementation Plan
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task.
 
-**Goal:** Calibrate lexical retrieval so Spanish plural variants are recoverable, weak lexical collisions are deprioritized, and zero-evidence queries abstain explicitly.
+**Status:** implemented on `feat/retrieval-calibration-abstention-v0.7`; final documentation-head verification pending at the time of this update. PR #14 remains draft and unmerged.
 
-**Architecture:** Keep v0.6 unified corpus loading intact. Add a dedicated dependency-free retrieval normalizer, extend retrieval evidence with coverage fields and abstention state, then update renderers/CLI documentation while preserving read-only behavior and human review.
+**Goal:** Calibrate lexical retrieval so selected Spanish plural variants are recoverable, weak lexical collisions are easier to inspect, and genuinely zero-evidence queries abstain explicitly.
 
-**Tech Stack:** Python 3.11+, SQLite, stdlib only, pytest.
+**Architecture:** Preserve the v0.6 unified read-only corpus. Add an isolated dependency-free retrieval normalizer, coverage-aware evidence/ranking, and explicit abstention. Keep the frozen v0.5 novelty/Jaccard contract as secondary evidence and keep human review mandatory.
+
+**Tech Stack:** Python 3.11+, SQLite, stdlib runtime only, pytest.
 
 **Spec:** `docs/superpowers/specs/2026-09-01-retrieval-calibration-abstention-v0.7-design.md`
 
-## Global Constraints
+## Global constraints
 
 - No embeddings, vector search, LLM runtime inference, synonym expansion, or automatic semantic relations.
 - No new SQLite tables or write path.
 - SQLite retrieval remains `mode=ro`.
 - Runtime dependencies remain empty.
-- v0.5 novelty normalization remains unchanged.
-- Blind benchmark files are calibration inputs only.
+- v0.5 novelty normalization remains frozen.
+- Blind benchmark files remain calibration inputs only.
 - Human review remains mandatory.
 
 ---
 
-### Task 1: Retrieval-specific text normalization
+## Final file architecture
 
-**Files:**
-- Create: `src/question_radar/retrieval_text.py`
-- Create: `tests/test_retrieval_text.py`
-
-**Interfaces:**
-- Produces: `normalize_retrieval_tokens(text: str) -> tuple[str, ...]`
-
-- [ ] **Step 1: Write failing normalization tests**
-
-Test accent/lower handling, retrieval stopwords, blank-input rejection, and exact plural regressions:
-
-```python
-assert normalize_retrieval_tokens("costos sistemas personas errores decisiones sensores") == (
-    "costo", "sistema", "persona", "error", "decision", "sensor"
-)
-assert "pero" not in normalize_retrieval_tokens("pero sistema")
-```
-
-Also prove `question_radar.novelty.normalize_tokens` has not changed.
-
-- [ ] **Step 2: Run tests and confirm RED**
-
-Run: `pytest tests/test_retrieval_text.py -q`
-Expected: import/module failure because v0.7 normalizer does not exist.
-
-- [ ] **Step 3: Implement minimal deterministic normalizer**
-
-Use NFKD, accent stripping, retrieval-specific stopwords, token length guard, and only the approved plural rules.
-
-- [ ] **Step 4: Run focused tests and confirm GREEN**
-
-Run: `pytest tests/test_retrieval_text.py -q`
-Expected: all pass.
-
-- [ ] **Step 5: Commit**
-
-`git commit -m "feat: add retrieval-specific text normalization"`
+- `src/question_radar/retrieval_text.py` — retrieval-only normalization and narrow noun-focused plural handling.
+- `src/question_radar/retrieval.py` — BM25 retrieval, coverage evidence, calibrated ordering, and abstention.
+- `src/question_radar/retrieval_export.py` — deterministic v0.7 Markdown/JSON evidence and abstention output.
+- `src/question_radar/retrieval_storage.py` — unchanged v0.6 read-only unified corpus loader.
+- `src/question_radar/cli_v06.py` — unchanged public retrieval routing facade.
+- `tests/test_retrieval_text.py` — normalizer contract and verb-stemming guard.
+- `tests/test_retrieval.py` — coverage/ranking/abstention contract.
+- `tests/test_retrieval_benchmarks.py` — frozen blind inputs and retained strong gold labels.
+- `tests/test_retrieval_cli.py` — deterministic output, CLI, and read-only regressions.
+- `corpus/blind-system-trust-2026-09-01.jsonl` — 24-question external Blind Benchmark #4.
 
 ---
 
-### Task 2: Coverage-aware ranking and abstention
+## Executed TDD chronology
 
-**Files:**
-- Modify: `src/question_radar/retrieval.py`
-- Modify: `tests/test_retrieval.py`
+### Task 1 — Retrieval-specific normalization
 
-**Interfaces:**
-- Consumes: `normalize_retrieval_tokens`
-- Extends: `RetrievalEvidence`, `RetrievalPack`
+- [x] Added `tests/test_retrieval_text.py` before production code.
+- [x] CI RED: `ModuleNotFoundError: question_radar.retrieval_text`.
+- [x] Added `normalize_retrieval_tokens()` with retrieval-specific stopwords and initial conservative morphology.
+- [x] Preserved v0.5 `normalize_tokens()` unchanged through regression coverage.
 
-- [ ] **Step 1: Write failing tests**
+### Task 2 — Coverage-aware ranking and abstention
 
-Add tests asserting:
+- [x] Extended `RetrievalEvidence` with `matched_token_count`, `query_token_count`, and `query_coverage`.
+- [x] Extended `RetrievalPack` with `abstained` and `abstention_reason`.
+- [x] Added explicit `no_lexical_evidence` abstention with `results=()` for truly zero-overlap queries.
+- [x] Changed ordering to matched-token count → coverage → BM25 → frozen v0.5 Jaccard → stable keys.
+- [x] Preserved read-only corpus loading and mandatory human review.
 
-```python
-result.matched_token_count == len(result.matched_query_tokens)
-result.query_token_count > 0
-0.0 <= result.query_coverage <= 1.0
-```
+### Task 3 — Blind Benchmark #4 calibration
 
-Add ranking test where a two-token match outranks a one-token rare match.
+- [x] Froze all 24 blind system-trust questions exactly before accepting final behavior.
+- [x] Retained strong gold labels that fit v0.7 scope:
+  - Q1 → `vault-2026-08-31-001` top 5.
+  - Q14 → `qv2-cal-013` top 5.
+  - prior Blind #3 Q7 → `qv2-cal-013` top 5.
+- [x] Withdrew Q16-as-abstention before production closure because `personas → persona` creates genuine weak lexical evidence. Q16 remains a diagnostic weak-evidence control.
+- [x] CI later showed Q24 still depends on `entienden ↔ entender`; forcing Q24 top 5 would require verb stemming, semantic assistance, or an ad hoc boost outside v0.7. Q24 remains a negative control instead of being overfit.
 
-Add abstention test:
+### Task 4 — Renderer and CLI evidence contract
 
-```python
-pack = retrieve_candidates("recomendacion automatica modifica evaluarla", corpus, limit=5)
-assert pack.abstained is True
-assert pack.abstention_reason == "no_lexical_evidence"
-assert pack.results == ()
-```
+- [x] Updated deterministic Markdown/JSON to expose coverage fields.
+- [x] Added explicit `ABSTAINED` / `no_lexical_evidence` rendering.
+- [x] Kept the public `question-radar retrieval compare` namespace and existing CLI facade.
+- [x] Preserved byte-for-byte read-only CLI database behavior and fail-closed missing-DB behavior.
 
-- [ ] **Step 2: Run focused tests and confirm RED**
+### Task 5 — Morphology self-review
 
-Run: `pytest tests/test_retrieval.py -q`
-Expected: missing fields/behavior.
+A self-review found that the initial generic plural rule silently stemmed verbs such as `puedes → pued`, `tomas → toma`, and `trabajas → trabaja`.
 
-- [ ] **Step 3: Implement minimal changes**
-
-Use `normalize_retrieval_tokens` for query and document BM25 tokens. Compute coverage from unique query tokens. Sort by matched count, coverage, BM25, Jaccard, then stable keys. If all entries have zero lexical evidence, return an abstained pack with no results.
-
-- [ ] **Step 4: Run focused tests and confirm GREEN**
-
-Run: `pytest tests/test_retrieval.py -q`
-Expected: all pass.
-
-- [ ] **Step 5: Commit**
-
-`git commit -m "feat: calibrate retrieval ranking and abstention"`
-
----
-
-### Task 3: Freeze Blind Benchmark #4 and pre-registered regression labels
-
-**Files:**
-- Create: `corpus/blind-system-trust-2026-09-01.jsonl`
-- Modify: `corpus/README.md`
-- Modify: `tests/test_retrieval_benchmarks.py`
-
-**Interfaces:**
-- Uses the existing public v0.2/v0.4 calibration corpus fixtures.
-
-- [ ] **Step 1: Write benchmark regressions before production calibration changes are accepted**
-
-Freeze all 24 raw questions exactly. Add strong labels:
-
-```text
-Q1  -> vault-2026-08-31-001 top5
-Q14 -> qv2-cal-013 top5
-Q24 -> vault-2026-08-31-001 top5
-Q16 -> abstain
-Benchmark #3 Q7 -> qv2-cal-013 top5
-```
-
-- [ ] **Step 2: Run benchmark tests**
-
-Run: `pytest tests/test_retrieval_benchmarks.py -q`
-Expected before final calibration: at least Q14/Q24/Q16 fail under v0.6 behavior.
-
-- [ ] **Step 3: Make only contract-approved calibration changes if needed**
-
-Do not add IDs, synonyms, per-question boosts, or semantic rules.
-
-- [ ] **Step 4: Re-run and confirm GREEN**
-
-Run: `pytest tests/test_retrieval_benchmarks.py -q`
-Expected: all pre-registered labels pass.
-
-- [ ] **Step 5: Commit**
-
-`git commit -m "test: freeze blind system trust retrieval benchmark"`
+- [x] Added a failing regression before changing production.
+- [x] CI RED: 1 failed, 315 passed, with the exact unwanted verb transformations above.
+- [x] Replaced the generic rule with narrow noun-focused suffix handling:
+  - `-iones` → remove final `es`.
+  - `-ores` → remove final `es`.
+  - `-emas` → remove final `s`.
+  - `-onas` → remove final `s`.
+  - `-os` → remove final `s`, except `-mos`.
+- [x] Regression explicitly preserves `entienden`, `modifica`, `pierde`, `puedes`, `tomas`, `usas`, and `trabajas` unchanged.
+- [x] CI GREEN on implementation head: 316 tests passed and `python -m compileall -q src` succeeded.
 
 ---
 
-### Task 4: Deterministic renderer and CLI contract
+## Verification gates before PR completion
 
-**Files:**
-- Modify: `src/question_radar/retrieval_export.py`
-- Modify: `src/question_radar/cli_v06.py`
-- Modify: `tests/test_retrieval_cli.py`
-- Add/modify renderer tests as appropriate.
+- [ ] Run the full suite on the final documentation head: `pytest -q`.
+- [ ] Run `python -m compileall -q src` on that same head.
+- [ ] Confirm `pyproject.toml` still contains `dependencies = []`.
+- [ ] Confirm no new SQLite tables or mutation paths were added.
+- [ ] Compare branch against `main` and verify the diff is limited to v0.7 source/tests/docs/calibration data.
+- [ ] Update PR #14 with exact final head SHA, CI evidence, retained gold labels, and Q16/Q24 control rationale.
+- [ ] Leave PR #14 unmerged pending explicit integration approval.
 
-**Interfaces:**
-- Renderer exposes `matched_token_count`, `query_token_count`, `query_coverage`, `abstained`, and `abstention_reason`.
+## Scientific boundary
 
-- [ ] **Step 1: Write failing output tests**
-
-Require deterministic Markdown/JSON output for both evidence and abstention cases. Markdown must explicitly say no lexical evidence was found when abstained.
-
-- [ ] **Step 2: Run focused tests and confirm RED**
-
-Run: `pytest tests/test_retrieval_cli.py -q`
-Expected: missing v0.7 fields/output.
-
-- [ ] **Step 3: Implement minimal renderer/CLI adaptation**
-
-Keep the public namespace `question-radar retrieval compare`. Do not change historical command semantics.
-
-- [ ] **Step 4: Run focused tests and confirm GREEN**
-
-Run: `pytest tests/test_retrieval_cli.py -q`
-Expected: pass.
-
-- [ ] **Step 5: Commit**
-
-`git commit -m "feat: expose retrieval coverage and abstention"`
-
----
-
-### Task 5: Documentation and complete verification
-
-**Files:**
-- Modify: `README.md`
-- Update this plan status after verification.
-
-- [ ] **Step 1: Document v0.7 boundaries**
-
-Describe retrieval-specific normalization, conservative morphology, coverage evidence, abstention, benchmark #4, and explicit non-goals.
-
-- [ ] **Step 2: Run full verification**
-
-Run:
-
-```bash
-pytest -q
-python -m compileall -q src
-```
-
-Expected: zero failures and compile success.
-
-- [ ] **Step 3: Verify dependency and persistence boundaries**
-
-Confirm `pyproject.toml` still has `dependencies = []`; confirm no new SQLite table or mutation path; confirm v0.5 novelty tests remain unchanged/green.
-
-- [ ] **Step 4: Review branch diff against main**
-
-Confirm only v0.7 source/tests/docs/calibration data changed.
-
-- [ ] **Step 5: Open PR without merging**
-
-PR title: `feat: add retrieval calibration and abstention v0.7`.
-
-PR body must include final test count, benchmark regressions, epistemic boundary, and exact head SHA.
-
----
-
-## Self-review
-
-- Spec coverage: all requirements map to Tasks 1–5.
-- No semantic layer is introduced.
-- Benchmark labels are pre-registered before accepting implementation behavior.
-- v0.5 remains frozen.
-- No placeholders or hidden persistence changes are permitted.
+A retrieval result means **“review this prior question before treating the candidate as new.”** It does not mean semantic equivalence. An abstention means only that the v0.7 lexical layer found no supported overlap; it does not prove the candidate is conceptually novel.
