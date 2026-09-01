@@ -6,7 +6,7 @@ We routinely store grades, assignments, correct answers, mistakes, tickets, sear
 
 Question Radar is a small, local-first Python system for turning questions into structured, inspectable data — **without turning them into a score of the person asking them**.
 
-**Current `main`: v0.3 · Question Profiles + Personal Learning Frontier**
+**Version:** v0.4 · Question Lineage + deterministic Context Packs
 
 **Stack:** Python 3.11+ · SQLite · CLI · JSONL/CSV · standard-library runtime only
 
@@ -47,16 +47,36 @@ assumptions + evidence needed
 stronger next question
      ↓
 optional learning observation
+     ↓
+explicit question lineage
+     ↓
+deterministic Context Pack
 ```
 
-It currently helps answer four practical questions:
+Question Radar helps answer practical questions such as:
 
 1. **What kind of question is this?**
 2. **Is it ready to answer, ready to investigate, or missing context?**
 3. **What assumptions or evidence still need to be surfaced?**
 4. **What stronger question could come next?**
+5. **How does this question relate explicitly to earlier or later questions?**
+6. **What bounded, inspectable context is useful for the next investigation?**
 
 The system is deliberately transparent. There is no external LLM deciding what somebody knows, no learner ranking, and no hidden intelligence or mastery score.
+
+---
+
+## What this project demonstrates
+
+- **Versioned data contracts** with backward compatibility across v0.1, v0.2, v0.3, and v0.4.
+- **Strict runtime validation** for required fields, closed vocabularies, numeric ranges, timestamps, and malformed input.
+- **Normalized SQLite storage** with separate tables for historical evaluations, typed profiles, learning observations, and question lineage.
+- **Ordered evidence relationships** preserved across database and JSONL round trips.
+- **Explicit directed question relations** with bounded, cycle-safe graph traversal.
+- **Derived Context Packs** with deterministic Markdown and JSON output.
+- **CLI design** with namespaced commands for scoring, profiling, learning-frontier, and lineage workflows.
+- **Explicit import/export boundaries** so local data stays local unless it is intentionally exported.
+- **Regression and end-to-end testing** across models, persistence, serialization, CLI behavior, calibration corpora, and historical compatibility.
 
 ---
 
@@ -131,6 +151,45 @@ Possible gap types include conceptual, terminology, procedural, connection, evid
 
 ---
 
+## v0.4: Question Lineage and Context Pack
+
+v0.4 makes the question itself a stable entity and connects questions with explicit, directed relations.
+
+```text
+¿Cómo puntuamos la calidad de una pregunta?
+        │
+        └── challenges_assumption ──>
+            ¿Tiene sentido comparar con el mismo score
+            una pregunta filosófica, factual y operacional?
+                         │
+                         └── decomposes ──>
+                             ¿Estamos puntuando calidad
+                             o readiness?
+```
+
+The closed v0.4 relation vocabulary is:
+
+- `refines`
+- `decomposes`
+- `generalizes`
+- `operationalizes`
+- `challenges_assumption`
+- `contrasts`
+- `follows_from`
+
+Relations are explicit calibration judgments: the runtime does not infer them silently.
+
+From any stored question, Question Radar can derive a bounded Context Pack:
+
+```bash
+question-radar lineage context chat-2026-08-29-012 --format markdown
+question-radar lineage context chat-2026-08-29-012 --format json
+```
+
+Defaults are **3 ancestor hops** and **1 descendant hop**. Traversal is cycle-safe, and the Context Pack is derived rather than persisted. It assembles stored lineage, matching profiles, learning observations, assumptions, evidence requirements, and existing next questions without inventing new epistemic claims.
+
+---
+
 ## Architecture
 
 ```text
@@ -146,21 +205,75 @@ Question Radar
 │   ├── evidence required
 │   └── next question
 │
-└── v0.3 LearningObservation
-    ├── concept
-    ├── gap type
-    ├── state
-    ├── confidence
-    └── ordered evidence question IDs
+├── v0.3 LearningObservation
+│   ├── concept
+│   ├── gap type
+│   ├── state
+│   ├── confidence
+│   └── ordered evidence question IDs
+│
+└── v0.4 Question Lineage
+    ├── QuestionNode
+    ├── QuestionRelation
+    ├── bounded graph traversal
+    └── derived Context Pack
 ```
 
-Persistence is local SQLite. Historical versions coexist without rewriting their contracts.
+Persistence in v0.4 includes:
 
-The runtime intentionally has **no third-party dependencies**. Development uses `pytest`.
+```text
+evaluations
+question_profiles_v02
+learning_observations_v03
+learning_observation_evidence_v03
+question_nodes_v04
+question_relations_v04
+```
+
+All versions can coexist in the same database without rewriting historical contracts. Existing databases are not automatically migrated into v0.4 lineage.
+
+---
+
+## Tests & verification
+
+The repository is tested as a small software system, not only as a collection of scoring examples.
+
+**Latest verified CI suite: 252 tests passing on Python 3.11.**
+
+That total contains **170 historical v0.1–v0.3 tests** plus **82 v0.4 tests**.
+
+Coverage includes:
+
+- v0.1 historical model and CLI behavior;
+- v0.2 profile validation and score consistency;
+- v0.3 `LearningObservation` validation;
+- v0.4 `QuestionNode` and `QuestionRelation` strict contracts;
+- timezone-aware timestamp validation and chronological ordering across UTC offsets;
+- SQLite insert/read round trips, foreign-key integrity, and initialization error handling;
+- normalized evidence ordering;
+- atomic lineage imports and rollback;
+- duplicate and malformed input rejection;
+- bounded, cycle-safe lineage traversal;
+- deterministic Context Pack Markdown and JSON;
+- JSONL/CSV serialization where supported;
+- CLI `add`, `list`, `show`, `top`, `frontier`, `import`, `export`, and `lineage` flows;
+- compatibility between v0.1, v0.2, v0.3, and v0.4 in one SQLite database;
+- public calibration corpus validation;
+- end-to-end lineage import → storage → traversal → v0.2/v0.3 join → Context Pack flow.
+
+Run the full suite:
+
+```bash
+pytest -q
+```
+
+GitHub Actions runs the same suite on pull requests and on pushes to `main`, followed by `python -m compileall -q src`.
 
 ---
 
 ## Quick start
+
+Requires Python 3.11+.
 
 ```bash
 python -m venv .venv
@@ -175,24 +288,148 @@ python -m pip install -e ".[dev]"
 pytest -q
 ```
 
-Example CLI flows:
+---
+
+## CLI
+
+### v0.1 — historical evaluations
 
 ```bash
-# typed profiles
-question-radar profile add examples/profile.example.json
-question-radar profile list
-question-radar profile top --type factual_conceptual --limit 10
-
-# learning observations
-question-radar learning add examples/learning_observation.example.json
-question-radar learning frontier
+question-radar add examples/evaluation.example.json
+question-radar list
+question-radar top --limit 5
 ```
 
-Use another local database with:
+### v0.2 — typed profiles
+
+```bash
+question-radar profile add examples/profile.example.json
+question-radar profile list
+question-radar profile show qv2-001
+question-radar profile top --type factual_conceptual --limit 10
+question-radar profile import corpus/anti-ia-calibration-v0.2.jsonl --format jsonl
+question-radar profile export exports/profiles.jsonl --format jsonl
+```
+
+### v0.3 — learning observations
+
+```bash
+question-radar learning add examples/learning_observation.example.json
+question-radar learning list
+question-radar learning show learning-001
+question-radar learning frontier
+question-radar learning import corpus/learning-frontier-chat-2026-08-29-v0.3.jsonl --format jsonl
+question-radar learning export exports/learning.jsonl --format jsonl
+```
+
+### v0.4 — Question Lineage
+
+```bash
+question-radar lineage node add question.json
+question-radar lineage node list
+question-radar lineage node show chat-2026-08-29-012
+
+question-radar lineage relation add relation.json
+question-radar lineage relation list
+question-radar lineage relation list --question chat-2026-08-29-012
+
+question-radar lineage import corpus/question-lineage-v0.4.jsonl
+question-radar lineage context chat-2026-08-29-012 --format markdown
+question-radar lineage context chat-2026-08-29-012 --format json
+```
+
+Use a different local database at any time:
 
 ```bash
 question-radar --db /path/to/questions.sqlite3 profile list
 ```
+
+---
+
+## Versioned contracts
+
+### v0.1 — historical `QuestionEvaluation`
+
+The original rubric remains frozen as a historical contract. It should not be silently retrofitted to match later versions.
+
+### v0.2 — `QuestionProfile`
+
+Each profile stores:
+
+- stable `id`;
+- original `question`;
+- `question_type`;
+- `readiness`;
+- five formulation dimensions;
+- `formulation_score`;
+- descriptive traits (`depth`, `connections`, `generativity`);
+- `strengths`;
+- `gap`;
+- `assumptions`;
+- `evidence_required`;
+- `next_question`;
+- optional `topic`;
+- evaluator and rubric version;
+- timestamp.
+
+### v0.3 — `LearningObservation`
+
+Each observation stores:
+
+- `concept`;
+- gap type;
+- revisable state;
+- confidence;
+- ordered `evidence_question_ids`;
+- interpretation;
+- suggested next step;
+- created/updated timestamps.
+
+Confidence:
+
+```text
+low
+medium
+high
+```
+
+See `examples/learning_observation.example.json` and `corpus/learning-frontier-chat-2026-08-29-v0.3.jsonl`.
+
+### v0.4 — question lineage
+
+`QuestionNode` stores exactly:
+
+- `id`
+- `question`
+- `source`
+- `source_ref`
+- `created_at`
+
+`QuestionRelation` stores exactly:
+
+- `id`
+- `source_question_id`
+- `target_question_id`
+- `relation_type`
+- `created_at`
+
+The graph allows semantic cycles but rejects self-relations and exact duplicate edges. Historical questions enter lineage only through explicit import.
+
+---
+
+## Public calibration data
+
+The repository includes intentionally public calibration corpora. They are small enough to inspect directly and versioned by contract.
+
+Current datasets include:
+
+- `anti-ia-seed-v0.1.jsonl`
+- `anti-ia-calibration-v0.2.jsonl`
+- `chat-2026-08-29.jsonl`
+- `learning-frontier-chat-2026-08-29-v0.3.jsonl`
+- `question-lineage-v0.4.jsonl`
+
+They are **calibration judgments, not truth labels and not scores of people**.
 
 ---
 
@@ -205,41 +442,18 @@ Question Radar is local-first by design:
 - no complete chat history is ingested automatically;
 - no API key or external account is required;
 - no user identity model or learner ranking exists;
-- published corpora are calibration judgments, not truth labels and not scores of people.
-
-The `corpus/` directory contains intentionally public calibration datasets for the versioned contracts.
-
----
-
-## Verification
-
-The merged v0.1–v0.3 system has been exercised through model, SQLite, serialization, CLI, calibration, privacy, and end-to-end regression tests.
-
-The latest verified local suite reported for the merged v0.3 work is **170 tests passing**.
-
-There is currently **no GitHub Actions workflow**, so local verification is not presented as remote CI.
+- published corpora are calibration judgments, not truth labels and not scores of people;
+- v0.4 performs no automatic historical migration or chat ingestion.
 
 ---
 
-## In development — Question Lineage v0.4
+## Scope
 
-Question Lineage is implemented in an **open pull request and is not part of `main` yet**.
+Question Radar intentionally stays small.
 
-Its direction is to preserve explicit relationships between questions such as:
+Not included in v0.4: web frontend, Supabase, authentication, embeddings, LangGraph, NetworkX, Neo4j, external LLM API calls, automatic chat scraping, automatic relation inference, multi-user analytics, or direct GeoPlatform / Anti IA runtime integration.
 
-```text
-Question A
-    ↓ challenges_assumption
-Question B
-    ↓ decomposes
-Question C
-    ↓ operationalizes
-Question D
-```
-
-The proposed v0.4 layer adds stable question nodes, explicit directed relations, bounded cycle-safe traversal, and deterministic Context Packs that can assemble relevant question history without silently inferring new relations.
-
-Until that work is reviewed and merged, **v0.3 remains the canonical public implementation**.
+The current core data model is: **questions → profiles → evidence → revisable learning observations → explicit lineage → deterministic context for the next question**.
 
 ---
 
