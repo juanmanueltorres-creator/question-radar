@@ -157,7 +157,7 @@ def test_macro_recall_averages_per_positive_case_not_raw_judgment_count() -> Non
     )
     case_two = _positive_case(
         "q2",
-        "delta zeta",
+        "theta zeta",
         (_judgment("c"),),
     )
 
