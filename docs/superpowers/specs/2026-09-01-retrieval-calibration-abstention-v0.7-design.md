@@ -8,7 +8,7 @@ v0.6 solved corpus visibility across v0.2 profiles and v0.4 lineage, but Blind B
 
 1. weak function-word matches can outrank more meaningful evidence;
 2. simple Spanish morphology such as `costos/costo` and `sistemas/sistema` can cause false negatives;
-3. when every candidate has zero lexical evidence, retrieval still returns arbitrary top-N rows.
+3. zero-evidence rows can be returned merely to fill a requested top-N shortlist.
 
 v0.7 improves evidence quality without introducing semantic authority.
 
@@ -18,7 +18,8 @@ v0.7 improves evidence quality without introducing semantic authority.
 - remove retrieval-specific low-information function words conservatively;
 - normalize only a narrow set of high-confidence Spanish noun/adjective plurals;
 - expose match count and query coverage as evidence;
-- abstain when no lexical evidence exists;
+- never include a zero-evidence row in a retrieval shortlist;
+- abstain when no lexical evidence exists anywhere in the corpus;
 - preserve BM25 and the frozen v0.5 Jaccard as inspectable signals;
 - preserve the v0.6 unified read-only corpus and persistence contract;
 - keep human review mandatory.
@@ -43,9 +44,10 @@ BM25 + frozen v0.5 weighted-Jaccard evidence
     ↓
 matched_token_count + query_coverage
     ↓
+remove rows with matched_token_count = 0
+    ↓
 ┌───────────────────┬────────────────────┐
-│ lexical evidence  │ no lexical evidence│
-│ present           │                    │
+│ evidence remains  │ no evidence remains│
 ▼                   ▼
 ranked candidates   ABSTAIN
         ↓
@@ -116,7 +118,11 @@ The v0.7 abstention reason vocabulary currently contains:
 no_lexical_evidence
 ```
 
-If every corpus entry has zero matched retrieval tokens, return:
+### Shortlist admission
+
+Only entries with `matched_token_count > 0` are eligible for `results`. `limit` is therefore a maximum result count, not a quota. If one corpus entry has evidence and `limit=5`, returning one result is correct; four zero-evidence rows must not be added to fill the list.
+
+If no corpus entry has a matched retrieval token, return:
 
 ```text
 retrieval_version = "v0.7"
@@ -130,7 +136,7 @@ A single genuine content-token match is weak evidence, not zero evidence. v0.7 e
 
 ## Ranking
 
-Results with evidence are ordered by:
+Eligible results are ordered by:
 
 1. descending `matched_token_count`;
 2. descending `query_coverage`;
@@ -164,7 +170,7 @@ These labels assert candidate retrieval only; they do not assert semantic equiva
 
 ### Diagnostic controls preserved instead of forcing success
 
-**Q16** was initially proposed as an abstention gold. That expectation was withdrawn before production closure because the approved `personas → persona` normalization creates legitimate weak lexical evidence against the corpus. Forcing Q16 to abstain would contradict the normalization contract. True abstention is tested independently using a genuinely zero-overlap query.
+**Q16** was initially proposed as an abstention gold. That expectation was withdrawn before production closure because the approved `personas → persona` normalization creates legitimate weak lexical evidence against the corpus. Forcing Q16 to abstain would contradict the normalization contract. v0.7 must show only the evidence-bearing rows for Q16; it must not pad the shortlist with unrelated zero-match rows. True abstention is tested independently using a genuinely zero-overlap query.
 
 **Q24** was initially proposed as a `vault-2026-08-31-001` top-five gold. CI showed that, after the approved noun morphology, Q24 still depends materially on the unimplemented relation `entienden ↔ entender`. Forcing the target into top five would require general verb stemming, semantic assistance, or an ad hoc boost. Q24 is therefore preserved as a negative control for a future retrieval layer rather than hidden behind scope creep.
 
@@ -177,10 +183,11 @@ v0.7 is acceptable when:
 3. the approved noun-focused morphology passes while conjugated verbs remain unchanged;
 4. Blind #4 Q14 recovers `qv2-cal-013` without hard-coded IDs or synonyms;
 5. Blind #4 Q1 and Blind #3 Q7 remain top-five hits;
-6. genuinely zero-evidence inputs explicitly abstain with no arbitrary results;
-7. Q16 remains visible as weak evidence rather than being forced into an unsupported abstention;
-8. Q24 remains a documented lexical/semantic negative control rather than being overfit;
-9. Markdown/JSON expose coverage and abstention deterministically;
-10. CLI remains fail-closed and read-only;
-11. `dependencies = []` remains unchanged;
-12. no semantic relation or promotion is created automatically.
+6. zero-evidence rows never appear in a non-abstained shortlist;
+7. genuinely zero-evidence inputs explicitly abstain with no arbitrary results;
+8. Q16 remains visible as weak evidence rather than being forced into an unsupported abstention;
+9. Q24 remains a documented lexical/semantic negative control rather than being overfit;
+10. Markdown/JSON expose coverage and abstention deterministically;
+11. CLI remains fail-closed and read-only;
+12. `dependencies = []` remains unchanged;
+13. no semantic relation or promotion is created automatically.
