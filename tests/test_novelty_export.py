@@ -33,13 +33,20 @@ def test_candidate_jsonl_rejects_unknown_fields(tmp_path):
 
 def test_candidate_jsonl_rejects_blank_id_and_question(tmp_path):
     blank_id = tmp_path / "blank-id.jsonl"
-    blank_id.write_text(json.dumps({"id": " ", "question": "¿Qué recordar?"}), encoding="utf-8")
+    blank_id.write_text(
+        json.dumps({"id": " ", "question": "¿Qué recordar?"}),
+        encoding="utf-8",
+    )
     with pytest.raises(ValueError, match="candidate id must be a non-empty string"):
         load_candidate_questions(blank_id)
 
     blank_question = tmp_path / "blank-question.jsonl"
-    blank_question.write_text(json.dumps({"id": "q1", "question": " "}), encoding="utf-8")
-    with pytest.raises(ValueError, match="candidate question must be a non-empty string"):
+    blank_question.write_text(
+        json.dumps({"id": "q1", "question": " "}), encoding="utf-8"
+    )
+    with pytest.raises(
+        ValueError, match="candidate question must be a non-empty string"
+    ):
         load_candidate_questions(blank_question)
 
 
@@ -49,7 +56,7 @@ def test_related_forgetting_questions_form_possible_cluster():
             "q8", "¿Cómo distinguimos conocimiento válido de conocimiento obsoleto?"
         ),
         CandidateQuestion(
-            "q9", "¿Puede una documentación conservar procedimientos obsoletos?"
+            "q9", "¿Puede una documentación conservar conocimiento obsoleto?"
         ),
         CandidateQuestion(
             "q25", "¿Y si olvidar prácticas anteriores ayudara a adaptarse?"
