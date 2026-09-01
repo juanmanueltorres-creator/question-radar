@@ -81,3 +81,13 @@ def test_challenge_prompt_requires_explicit_challenge_syntax():
     )
     assert "challenges_assumption" not in ordinary.possible_interpretations
     assert "challenges_assumption" in challenged.possible_interpretations
+
+
+def test_challenge_prompt_requires_neighbor_evidence():
+    pack = build_novelty_pack(
+        "¿Y si olvidar fuera necesario para adaptarse?",
+        [],
+        [],
+    )
+    assert "challenges_assumption" not in pack.possible_interpretations
+    assert "possible_new_branch" in pack.possible_interpretations
