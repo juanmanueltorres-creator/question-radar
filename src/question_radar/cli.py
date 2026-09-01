@@ -28,6 +28,7 @@ from question_radar.novelty_export import (
     render_novelty_json,
     render_novelty_markdown,
 )
+from question_radar.novelty_storage import load_lineage_snapshot
 from question_radar.profile_export import export_profiles, load_profiles
 from question_radar.profile_storage import QuestionProfileStore
 from question_radar.profiles import QUESTION_TYPES, QuestionProfile
@@ -476,12 +477,8 @@ def _handle_lineage_command(
     raise ValueError("unknown lineage command")
 
 
-def _handle_novelty_command(
-    args: argparse.Namespace,
-    lineage_store: QuestionLineageStore,
-) -> int:
-    nodes = lineage_store.list_nodes()
-    relations = lineage_store.list_relations()
+def _handle_novelty_command(args: argparse.Namespace) -> int:
+    nodes, relations = load_lineage_snapshot(args.db)
 
     if args.novelty_command == "compare":
         pack = build_novelty_pack(
@@ -530,8 +527,7 @@ def main(argv: list[str] | None = None) -> int:
 
     try:
         if args.command == "novelty":
-            lineage_store = QuestionLineageStore(args.db)
-            return _handle_novelty_command(args, lineage_store)
+            return _handle_novelty_command(args)
 
         store = QuestionStore(args.db)
         profile_store = QuestionProfileStore(args.db)
