@@ -22,10 +22,16 @@ def test_retrieval_normalizer_applies_conservative_spanish_plural_rules():
 
 
 def test_retrieval_normalizer_does_not_stem_conjugated_verbs():
-    assert normalize_retrieval_tokens("entienden modifica pierde") == (
+    assert normalize_retrieval_tokens(
+        "entienden modifica pierde puedes tomas usas trabajas"
+    ) == (
         "entienden",
         "modifica",
         "pierde",
+        "puedes",
+        "tomas",
+        "usas",
+        "trabajas",
     )
 
 
