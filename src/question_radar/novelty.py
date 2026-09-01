@@ -211,7 +211,7 @@ def _possible_interpretations(
         and bool(raw_markers & _OPERATIONAL_MARKERS)
     ):
         proposed.add("operationalizes_existing")
-    if _has_challenge_syntax(candidate_question):
+    if neighbors and _has_challenge_syntax(candidate_question):
         proposed.add("challenges_assumption")
     if top_score < 0.45 or distinctive_ratio >= 0.40:
         proposed.add("possible_new_branch")
