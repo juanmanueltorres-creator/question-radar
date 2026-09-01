@@ -6,7 +6,7 @@ We routinely store grades, assignments, correct answers, mistakes, tickets, sear
 
 Question Radar is a small, local-first Python system for turning questions into structured, inspectable data — **without turning them into a score of the person asking them**.
 
-**Version:** v0.4 · Question Lineage + deterministic Context Packs
+**Version:** v0.5 · Corpus-Relative Novelty + explicit human review
 
 **Stack:** Python 3.11+ · SQLite · CLI · JSONL/CSV · standard-library runtime only
 
@@ -29,7 +29,7 @@ Research gives that concern some grounding:
 - **OECD PISA 2022, Volume V** reports that only **47%** of students across OECD countries frequently ask questions when they do not understand mathematics material; among low performers, the average is below 40%. The OECD treats active questioning as an important learning strategy. [PISA 2022 Results — Learning strategies](https://www.oecd.org/en/publications/pisa-2022-results-volume-v_c2e44201-en/full-report/component-10.html)
 - **Au (2007)** synthesized 49 qualitative studies of high-stakes testing. The most common pattern was curriculum narrowing, fragmentation into test-related knowledge, and more teacher-centred pedagogy, while also noting important counterexamples depending on test design. [DOI: 10.3102/0013189X07306523](https://doi.org/10.3102/0013189X07306523)
 
-The point is not to reward people for asking *more* questions. It is to make the **purpose, formulation, evidence needs, and evolution of questions visible**.
+The point is not to reward people for asking *more* questions. It is to make the **purpose, formulation, evidence needs, evolution, and corpus-relative position of questions visible**.
 
 ---
 
@@ -51,6 +51,16 @@ optional learning observation
 explicit question lineage
      ↓
 deterministic Context Pack
+
+new candidate question
+     ↓
+corpus-relative lexical evidence
+     ↓
+nearest questions + residual terms + possible clusters
+     ↓
+human review
+     ↓
+optional explicit v0.4 lineage decision
 ```
 
 Question Radar helps answer practical questions such as:
@@ -61,22 +71,27 @@ Question Radar helps answer practical questions such as:
 4. **What stronger question could come next?**
 5. **How does this question relate explicitly to earlier or later questions?**
 6. **What bounded, inspectable context is useful for the next investigation?**
+7. **Which existing questions are lexically close to a new candidate, and what evidence explains that proximity?**
+8. **What terms remain unexplained by the nearest corpus questions and may deserve human review as a new mechanism or branch?**
 
-The system is deliberately transparent. There is no external LLM deciding what somebody knows, no learner ranking, and no hidden intelligence or mastery score.
+The system is deliberately transparent. There is no external LLM deciding what somebody knows, no learner ranking, no hidden intelligence or mastery score, and no automatic semantic relation written by v0.5.
 
 ---
 
 ## What this project demonstrates
 
-- **Versioned data contracts** with backward compatibility across v0.1, v0.2, v0.3, and v0.4.
+- **Versioned data contracts** with backward compatibility across v0.1, v0.2, v0.3, v0.4, and v0.5 derived outputs.
 - **Strict runtime validation** for required fields, closed vocabularies, numeric ranges, timestamps, and malformed input.
 - **Normalized SQLite storage** with separate tables for historical evaluations, typed profiles, learning observations, and question lineage.
 - **Ordered evidence relationships** preserved across database and JSONL round trips.
 - **Explicit directed question relations** with bounded, cycle-safe graph traversal.
 - **Derived Context Packs** with deterministic Markdown and JSON output.
-- **CLI design** with namespaced commands for scoring, profiling, learning-frontier, and lineage workflows.
+- **Read-only corpus-relative novelty packs** with inspectable lexical overlap and residual-token evidence.
+- **Fail-closed SQLite novelty reads** using `mode=ro`: analysis never creates a missing database or migrates a legacy one.
+- **Provisional lexical clustering** that remains an analysis artifact rather than a persisted claim.
+- **CLI design** with namespaced commands for scoring, profiling, learning-frontier, lineage, and novelty workflows.
 - **Explicit import/export boundaries** so local data stays local unless it is intentionally exported.
-- **Regression and end-to-end testing** across models, persistence, serialization, CLI behavior, calibration corpora, and historical compatibility.
+- **Regression and end-to-end testing** across models, persistence, serialization, CLI behavior, blind calibration inputs, and historical compatibility.
 
 ---
 
@@ -190,6 +205,34 @@ Defaults are **3 ancestor hops** and **1 descendant hop**. Traversal is cycle-sa
 
 ---
 
+## v0.5: Corpus-Relative Novelty
+
+v0.5 addresses a different failure mode: a question can be excellent and still be redundant relative to what a corpus already contains.
+
+The layer compares a new candidate against stored v0.4 `QuestionNode` text using dependency-free, deterministic lexical evidence. It reports nearest questions, shared tokens and bigrams, residual candidate terms, lineage degree as context, and conservative review prompts.
+
+The central boundary is:
+
+> **Question Radar may surface evidence that two questions occupy similar or different lexical neighborhoods of the corpus. It does not decide that they mean the same thing.**
+
+Similarity is intentionally transparent:
+
+```text
+token_jaccard = |A ∩ B| / |A ∪ B|
+bigram_jaccard = |BA ∩ BB| / |BA ∪ BB|
+score = 0.7 * token_jaccard + 0.3 * bigram_jaccard
+```
+
+Normalization removes accents and a small set of function words, but v0.5 performs **no stemming, synonym expansion, embeddings, vector search, or LLM inference**.
+
+Every `NoveltyPack` has `review_required = true`. Possible labels such as `already_represented`, `refines_existing`, `operationalizes_existing`, `challenges_assumption`, and `possible_new_branch` are review prompts only. They do not create `QuestionRelation` records or promote questions into a master library.
+
+Batch analysis can surface provisional **lexical** clusters, but a cluster is likewise not a semantic truth or a master branch. The blind organizational-memory benchmark is deliberately kept as a negative control: human review connects Q8/Q9/Q10/Q25 around obsolescence and adaptive forgetting, while the original strings do not share enough lexical evidence to form that cluster at the default threshold. v0.5 preserves that miss instead of hiding it behind uninspectable semantic inference.
+
+The novelty CLI opens only an already-existing v0.4 lineage database in SQLite read-only mode. A missing database or a database without the v0.4 lineage tables fails closed; v0.5 never initializes or migrates SQLite while analyzing a candidate.
+
+---
+
 ## Architecture
 
 ```text
@@ -212,14 +255,21 @@ Question Radar
 │   ├── confidence
 │   └── ordered evidence question IDs
 │
-└── v0.4 Question Lineage
-    ├── QuestionNode
-    ├── QuestionRelation
-    ├── bounded graph traversal
-    └── derived Context Pack
+├── v0.4 Question Lineage
+│   ├── QuestionNode
+│   ├── QuestionRelation
+│   ├── bounded graph traversal
+│   └── derived Context Pack
+│
+└── v0.5 Corpus-Relative Novelty
+    ├── SimilarityEvidence
+    ├── NoveltyPack
+    ├── residual candidate tokens
+    ├── PossibleCluster
+    └── mandatory human review boundary
 ```
 
-Persistence in v0.4 includes:
+Persistence still includes only:
 
 ```text
 evaluations
@@ -230,7 +280,7 @@ question_nodes_v04
 question_relations_v04
 ```
 
-All versions can coexist in the same database without rewriting historical contracts. Existing databases are not automatically migrated into v0.4 lineage.
+v0.5 adds **no SQLite tables**. Novelty packs and clusters are derived, read-only analysis artifacts. All versions can coexist without rewriting historical contracts.
 
 ---
 
@@ -238,9 +288,7 @@ All versions can coexist in the same database without rewriting historical contr
 
 The repository is tested as a small software system, not only as a collection of scoring examples.
 
-**Latest verified CI suite: 252 tests passing on Python 3.11.**
-
-That total contains **170 historical v0.1–v0.3 tests** plus **82 v0.4 tests**.
+**Latest verified CI suite: 278 tests passing on Python 3.11.**
 
 Coverage includes:
 
@@ -255,9 +303,18 @@ Coverage includes:
 - duplicate and malformed input rejection;
 - bounded, cycle-safe lineage traversal;
 - deterministic Context Pack Markdown and JSON;
+- v0.5 accent-insensitive lexical normalization and weighted Jaccard similarity;
+- deterministic nearest-question ranking and residual-token evidence;
+- provisional cluster construction with deterministic connected components;
+- strict candidate JSONL validation, including malformed-input rejection;
+- deterministic v0.5 Markdown and JSON rendering;
+- byte-for-byte SQLite non-mutation checks for existing v0.4 databases;
+- fail-closed tests proving novelty analysis does not create a missing database or migrate a legacy database;
+- challenge prompts requiring both explicit challenge syntax and corpus-neighbor evidence;
+- blind benchmark regressions for software-domain convergence, organizational-memory residual evidence, exact 25-question preservation, and the known lexical false negative;
 - JSONL/CSV serialization where supported;
-- CLI `add`, `list`, `show`, `top`, `frontier`, `import`, `export`, and `lineage` flows;
-- compatibility between v0.1, v0.2, v0.3, and v0.4 in one SQLite database;
+- CLI `add`, `list`, `show`, `top`, `frontier`, `import`, `export`, `lineage`, and `novelty` flows;
+- compatibility between v0.1, v0.2, v0.3, v0.4, and derived v0.5 analysis in one SQLite database;
 - public calibration corpus validation;
 - end-to-end lineage import → storage → traversal → v0.2/v0.3 join → Context Pack flow.
 
@@ -338,10 +395,29 @@ question-radar lineage context chat-2026-08-29-012 --format markdown
 question-radar lineage context chat-2026-08-29-012 --format json
 ```
 
-Use a different local database at any time:
+### v0.5 — corpus-relative novelty
 
 ```bash
-question-radar --db /path/to/questions.sqlite3 profile list
+question-radar novelty compare \
+  "¿Qué debería recordar una organización y qué debería poder olvidar?" \
+  --limit 5 \
+  --format markdown
+
+question-radar novelty compare \
+  "¿Qué cambia cuando programar deja de ser el cuello de botella?" \
+  --format json
+
+question-radar novelty batch corpus/blind-memory-2026-09-01.jsonl \
+  --cluster-threshold 0.35 \
+  --format markdown
+```
+
+The novelty commands only read existing v0.4 question nodes and relations through SQLite `mode=ro`. They do not insert, update, delete, initialize tables, create lineage, migrate legacy databases, or promote questions.
+
+Use a different existing v0.4 database at any time:
+
+```bash
+question-radar --db /path/to/questions.sqlite3 novelty compare "¿Qué pregunta falta?"
 ```
 
 ---
@@ -415,11 +491,23 @@ See `examples/learning_observation.example.json` and `corpus/learning-frontier-c
 
 The graph allows semantic cycles but rejects self-relations and exact duplicate edges. Historical questions enter lineage only through explicit import.
 
+### v0.5 — derived novelty evidence
+
+v0.5 does not add a persisted domain table. Its main derived records are:
+
+- `SimilarityEvidence`
+- `NoveltyNeighbor`
+- `NoveltyPack`
+- `CandidateQuestion`
+- `PossibleCluster`
+
+`NoveltyPack` always requires human review. Similarity scores are lexical retrieval evidence, not semantic-equivalence scores, and provisional interpretations are never written into v0.4 lineage automatically.
+
 ---
 
 ## Public calibration data
 
-The repository includes intentionally public calibration corpora. They are small enough to inspect directly and versioned by contract.
+The repository includes intentionally public calibration corpora and blind inputs. They are small enough to inspect directly and versioned by contract or benchmark purpose.
 
 Current datasets include:
 
@@ -428,8 +516,12 @@ Current datasets include:
 - `chat-2026-08-29.jsonl`
 - `learning-frontier-chat-2026-08-29-v0.3.jsonl`
 - `question-lineage-v0.4.jsonl`
+- `chat-2026-08-31-software-recruiting-ai-lineage-v0.4.jsonl`
+- `blind-memory-2026-09-01.jsonl` — external blind v0.5 calibration input, not canonical lineage
 
-They are **calibration judgments, not truth labels and not scores of people**.
+The repository also keeps the software-domain blind experiment in `benchmarks/blind-test-2026-08-31-domain-software.md`.
+
+These artifacts are **calibration evidence, not truth labels and not scores of people**.
 
 ---
 
@@ -442,8 +534,9 @@ Question Radar is local-first by design:
 - no complete chat history is ingested automatically;
 - no API key or external account is required;
 - no user identity model or learner ranking exists;
-- published corpora are calibration judgments, not truth labels and not scores of people;
-- v0.4 performs no automatic historical migration or chat ingestion.
+- published corpora are calibration judgments or explicit benchmark inputs, not truth labels and not scores of people;
+- v0.4 performs no automatic historical migration or chat ingestion;
+- v0.5 novelty commands use a fail-closed read-only SQLite path and create no automatic semantic relations or promotions.
 
 ---
 
@@ -451,9 +544,9 @@ Question Radar is local-first by design:
 
 Question Radar intentionally stays small.
 
-Not included in v0.4: web frontend, Supabase, authentication, embeddings, LangGraph, NetworkX, Neo4j, external LLM API calls, automatic chat scraping, automatic relation inference, multi-user analytics, or direct GeoPlatform / Anti IA runtime integration.
+Not included in v0.5: web frontend, Supabase, authentication, embeddings, vector databases, LangGraph, NetworkX, Neo4j, external LLM API calls, automatic chat scraping, automatic relation inference, automatic master promotion, multi-user analytics, or direct GeoPlatform / Anti IA runtime integration.
 
-The current core data model is: **questions → profiles → evidence → revisable learning observations → explicit lineage → deterministic context for the next question**.
+The current core model is: **questions → profiles → evidence → revisable learning observations → explicit lineage → deterministic context**, plus a **read-only corpus-relative evidence layer for reviewing new candidate questions before changing the graph**.
 
 ---
 
@@ -466,6 +559,8 @@ It is not:
 - a claim that question quality can be reduced to one universal number;
 - an automatic diagnosis of learning deficits;
 - an LLM judge of people;
+- an automatic semantic-equivalence oracle;
+- an automatic master-question curator;
 - automatic chat surveillance;
 - a replacement for teachers, tutors, researchers, or domain review.
 

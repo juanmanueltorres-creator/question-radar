@@ -20,6 +20,15 @@ from question_radar.lineage import QuestionNode, QuestionRelation
 from question_radar.lineage_export import load_lineage_bundle
 from question_radar.lineage_storage import QuestionLineageStore
 from question_radar.models import QuestionEvaluation
+from question_radar.novelty import build_novelty_pack, cluster_candidates
+from question_radar.novelty_export import (
+    load_candidate_questions,
+    render_batch_json,
+    render_batch_markdown,
+    render_novelty_json,
+    render_novelty_markdown,
+)
+from question_radar.novelty_storage import load_lineage_snapshot
 from question_radar.profile_export import export_profiles, load_profiles
 from question_radar.profile_storage import QuestionProfileStore
 from question_radar.profiles import QUESTION_TYPES, QuestionProfile
@@ -205,6 +214,36 @@ def build_parser() -> argparse.ArgumentParser:
     )
     lineage_context.add_argument("--ancestors", type=int, default=3)
     lineage_context.add_argument("--descendants", type=int, default=1)
+
+    novelty_parser = subparsers.add_parser(
+        "novelty",
+        help="compare candidate questions with the existing corpus without mutation",
+    )
+    novelty_subparsers = novelty_parser.add_subparsers(
+        dest="novelty_command",
+        required=True,
+    )
+
+    novelty_compare = novelty_subparsers.add_parser(
+        "compare",
+        help="render corpus-relative evidence for one candidate question",
+    )
+    novelty_compare.add_argument("question")
+    novelty_compare.add_argument("--limit", type=int, default=5)
+    novelty_compare.add_argument(
+        "--format", choices=("markdown", "json"), default="markdown"
+    )
+
+    novelty_batch = novelty_subparsers.add_parser(
+        "batch",
+        help="analyze candidate JSONL and surface provisional lexical clusters",
+    )
+    novelty_batch.add_argument("input")
+    novelty_batch.add_argument(
+        "--format", choices=("markdown", "json"), default="markdown"
+    )
+    novelty_batch.add_argument("--limit", type=int, default=5)
+    novelty_batch.add_argument("--cluster-threshold", type=float, default=0.35)
 
     return parser
 
@@ -438,15 +477,63 @@ def _handle_lineage_command(
     raise ValueError("unknown lineage command")
 
 
+def _handle_novelty_command(args: argparse.Namespace) -> int:
+    nodes, relations = load_lineage_snapshot(args.db)
+
+    if args.novelty_command == "compare":
+        pack = build_novelty_pack(
+            args.question,
+            nodes,
+            relations,
+            limit=args.limit,
+        )
+        rendered = (
+            render_novelty_json(pack)
+            if args.format == "json"
+            else render_novelty_markdown(pack)
+        )
+        print(rendered, end="")
+        return 0
+
+    if args.novelty_command == "batch":
+        candidates = load_candidate_questions(args.input)
+        packs = tuple(
+            build_novelty_pack(
+                candidate.question,
+                nodes,
+                relations,
+                limit=args.limit,
+            )
+            for candidate in candidates
+        )
+        clusters = cluster_candidates(
+            candidates,
+            threshold=args.cluster_threshold,
+        )
+        rendered = (
+            render_batch_json(candidates, packs, clusters)
+            if args.format == "json"
+            else render_batch_markdown(candidates, packs, clusters)
+        )
+        print(rendered, end="")
+        return 0
+
+    raise ValueError("unknown novelty command")
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = build_parser()
     args = parser.parse_args(argv)
-    store = QuestionStore(args.db)
-    profile_store = QuestionProfileStore(args.db)
-    learning_store = LearningObservationStore(args.db)
-    lineage_store = QuestionLineageStore(args.db)
 
     try:
+        if args.command == "novelty":
+            return _handle_novelty_command(args)
+
+        store = QuestionStore(args.db)
+        profile_store = QuestionProfileStore(args.db)
+        learning_store = LearningObservationStore(args.db)
+        lineage_store = QuestionLineageStore(args.db)
+
         if args.command == "profile":
             return _handle_profile_command(args, profile_store)
 
