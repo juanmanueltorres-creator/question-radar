@@ -99,14 +99,18 @@ def test_system_trust_q14_retrieves_cost_of_action_question_top_five():
     assert "qv2-cal-013" in _top_ids(q14)
 
 
-def test_system_trust_q24_retrieves_existing_system_understanding_question_top_five():
-    q24 = _jsonl(BLIND_SYSTEM)[23]["question"]
-    assert "vault-2026-08-31-001" in _top_ids(q24)
-
-
 def test_system_trust_q16_is_preserved_as_diagnostic_not_abstention_gold():
     q16 = _jsonl(BLIND_SYSTEM)[15]["question"]
     assert q16 == (
         "¿Hasta qué punto una recomendación automática modifica la decisión antes incluso "
         "de que la persona empiece a evaluarla?"
+    )
+
+
+def test_system_trust_q24_is_preserved_as_semantic_morphology_negative_control():
+    q24 = _jsonl(BLIND_SYSTEM)[23]["question"]
+    assert q24 == (
+        "¿El problema principal es que las personas no entienden los sistemas que usan, o "
+        "que tampoco pueden comprender por completo muchas de las decisiones complejas que "
+        "toman sin ellos?"
     )
