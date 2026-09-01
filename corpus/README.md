@@ -1,8 +1,8 @@
 # Public question corpora
 
-This directory contains intentionally published question-evaluation corpora.
+This directory contains intentionally published question-evaluation corpora and blind calibration inputs.
 
-These files are **calibration judgments, not truth labels and not scores of people**.
+These files are **calibration judgments or source questions, not truth labels and not scores of people**.
 
 ## Anti IA seed v0.1
 
@@ -47,3 +47,13 @@ These records are **revisable hypotheses about observable question patterns**, n
 The calibration deliberately includes repeated educational questions that remain `possible_gap` rather than becoming `recurring_gap`: recurrence is ambiguous and can reflect emphasis, disagreement, changed context, weak prior explanations, or an unresolved evidence question.
 
 No learner is ranked or scored by this corpus.
+
+## Blind organizational-memory benchmark — 2026-09-01
+
+`blind-memory-2026-09-01.jsonl` preserves the 25-question output of a separate blind chat about organizational memory, knowledge loss, tacit knowledge, documentation, incentives, and forgetting.
+
+The generating chat was not given the Question Radar repository, rubric, lineage vocabulary, master-question library, or prior benchmark interpretation. The wording is preserved exactly as generated and the file contains only candidate IDs plus raw questions.
+
+This file is **not canonical lineage and is not imported as master questions**. It is a v0.5 calibration input used to test corpus-relative retrieval, residual-token evidence, and provisional clustering without contaminating the corpus it is compared against.
+
+In particular, the benchmark exposed a useful failure mode for simple “best question” selection: a highly rated question may already be represented by the corpus, while a less obvious question may introduce a residual mechanism such as obsolescence or adaptive forgetting. v0.5 surfaces evidence for review; it does not promote that interpretation automatically.
