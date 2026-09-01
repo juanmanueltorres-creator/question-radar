@@ -92,7 +92,7 @@ def _abstained_pack(candidate_question: str, corpus_size: int) -> RetrievalPack:
         results=(),
         review_required=True,
         abstained=True,
-        abstention_reason="no_lexical_evidence",
+        abstention_reason=ABSTENTION_REASONS[0],
     )
 
 
@@ -189,10 +189,13 @@ def retrieve_candidates(
             )
         )
 
-    if not any(result.matched_token_count > 0 for result in results):
+    evidence_results = [
+        result for result in results if result.matched_token_count > 0
+    ]
+    if not evidence_results:
         return _abstained_pack(candidate_question, corpus_size)
 
-    results.sort(
+    evidence_results.sort(
         key=lambda result: (
             -result.matched_token_count,
             -result.query_coverage,
@@ -208,7 +211,7 @@ def retrieve_candidates(
         retrieval_version="v0.7",
         candidate_question=candidate_question.strip(),
         corpus_size=corpus_size,
-        results=tuple(results[:limit]),
+        results=tuple(evidence_results[:limit]),
         review_required=True,
         abstained=False,
         abstention_reason=None,
