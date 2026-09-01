@@ -2,11 +2,11 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task.
 
-**Status:** implemented on `feat/retrieval-calibration-abstention-v0.7`; final documentation-head verification pending at the time of this update. PR #14 remains draft and unmerged.
+**Status:** implementation and review fixes complete on `feat/retrieval-calibration-abstention-v0.7`; final CI on this documentation head is the remaining verification gate. PR #14 remains draft and unmerged.
 
-**Goal:** Calibrate lexical retrieval so selected Spanish plural variants are recoverable, weak lexical collisions are easier to inspect, and genuinely zero-evidence queries abstain explicitly.
+**Goal:** Calibrate lexical retrieval so selected Spanish plural variants are recoverable, weak lexical collisions are inspectable, zero-evidence rows never pad a shortlist, and genuinely zero-evidence queries abstain explicitly.
 
-**Architecture:** Preserve the v0.6 unified read-only corpus. Add an isolated dependency-free retrieval normalizer, coverage-aware evidence/ranking, and explicit abstention. Keep the frozen v0.5 novelty/Jaccard contract as secondary evidence and keep human review mandatory.
+**Architecture:** Preserve the v0.6 unified read-only corpus. Add an isolated dependency-free retrieval normalizer, coverage-aware evidence/ranking, evidence-only shortlist admission, and explicit abstention. Keep frozen v0.5 novelty/Jaccard as secondary evidence and human review mandatory.
 
 **Tech Stack:** Python 3.11+, SQLite, stdlib runtime only, pytest.
 
@@ -27,12 +27,12 @@
 ## Final file architecture
 
 - `src/question_radar/retrieval_text.py` — retrieval-only normalization and narrow noun-focused plural handling.
-- `src/question_radar/retrieval.py` — BM25 retrieval, coverage evidence, calibrated ordering, and abstention.
+- `src/question_radar/retrieval.py` — BM25 retrieval, coverage evidence, evidence-only shortlist admission, calibrated ordering, and abstention.
 - `src/question_radar/retrieval_export.py` — deterministic v0.7 Markdown/JSON evidence and abstention output.
 - `src/question_radar/retrieval_storage.py` — unchanged v0.6 read-only unified corpus loader.
 - `src/question_radar/cli_v06.py` — unchanged public retrieval routing facade.
 - `tests/test_retrieval_text.py` — normalizer contract and verb-stemming guard.
-- `tests/test_retrieval.py` — coverage/ranking/abstention contract.
+- `tests/test_retrieval.py` — coverage/ranking/shortlist/abstention contract.
 - `tests/test_retrieval_benchmarks.py` — frozen blind inputs and retained strong gold labels.
 - `tests/test_retrieval_cli.py` — deterministic output, CLI, and read-only regressions.
 - `corpus/blind-system-trust-2026-09-01.jsonl` — 24-question external Blind Benchmark #4.
@@ -63,8 +63,8 @@
   - Q1 → `vault-2026-08-31-001` top 5.
   - Q14 → `qv2-cal-013` top 5.
   - prior Blind #3 Q7 → `qv2-cal-013` top 5.
-- [x] Withdrew Q16-as-abstention before production closure because `personas → persona` creates genuine weak lexical evidence. Q16 remains a diagnostic weak-evidence control.
-- [x] CI later showed Q24 still depends on `entienden ↔ entender`; forcing Q24 top 5 would require verb stemming, semantic assistance, or an ad hoc boost outside v0.7. Q24 remains a negative control instead of being overfit.
+- [x] Withdrew Q16-as-abstention because `personas → persona` creates genuine weak lexical evidence. Q16 remains a diagnostic weak-evidence control.
+- [x] Withdrew Q24 top-five gold after CI showed it still depends on `entienden ↔ entender`; forcing it would require verb stemming, semantic assistance, or an ad hoc boost outside v0.7.
 
 ### Task 4 — Renderer and CLI evidence contract
 
@@ -78,7 +78,7 @@
 A self-review found that the initial generic plural rule silently stemmed verbs such as `puedes → pued`, `tomas → toma`, and `trabajas → trabaja`.
 
 - [x] Added a failing regression before changing production.
-- [x] CI RED: 1 failed, 315 passed, with the exact unwanted verb transformations above.
+- [x] CI RED: 1 failed, 315 passed, showing the unwanted transformations.
 - [x] Replaced the generic rule with narrow noun-focused suffix handling:
   - `-iones` → remove final `es`.
   - `-ores` → remove final `es`.
@@ -86,7 +86,17 @@ A self-review found that the initial generic plural rule silently stemmed verbs 
   - `-onas` → remove final `s`.
   - `-os` → remove final `s`, except `-mos`.
 - [x] Regression explicitly preserves `entienden`, `modifica`, `pierde`, `puedes`, `tomas`, `usas`, and `trabajas` unchanged.
-- [x] CI GREEN on implementation head: 316 tests passed and `python -m compileall -q src` succeeded.
+- [x] CI GREEN after fix: 316 tests passed and `python -m compileall -q src` succeeded.
+
+### Task 6 — Code-review shortlist admission fix
+
+A final diff review found that v0.7 could still return zero-evidence rows after one positive match merely to fill `limit`.
+
+- [x] Added a regression requiring a mixed corpus to return only evidence-bearing rows.
+- [x] CI RED: 1 failed, 315 passed; result IDs were `match`, `zero-a`, `zero-b` instead of only `match`.
+- [x] Filtered shortlist candidates to `matched_token_count > 0` before sorting and slicing.
+- [x] `limit` is now a maximum, not a quota.
+- [x] CI GREEN after the runtime fix; final documentation-head CI remains the last gate.
 
 ---
 
@@ -94,10 +104,10 @@ A self-review found that the initial generic plural rule silently stemmed verbs 
 
 - [ ] Run the full suite on the final documentation head: `pytest -q`.
 - [ ] Run `python -m compileall -q src` on that same head.
-- [ ] Confirm `pyproject.toml` still contains `dependencies = []`.
-- [ ] Confirm no new SQLite tables or mutation paths were added.
-- [ ] Compare branch against `main` and verify the diff is limited to v0.7 source/tests/docs/calibration data.
-- [ ] Update PR #14 with exact final head SHA, CI evidence, retained gold labels, and Q16/Q24 control rationale.
+- [x] Confirm `pyproject.toml` still contains `dependencies = []`.
+- [x] Confirm no new SQLite tables or mutation paths were added; `retrieval_storage.py` is unchanged.
+- [x] Compare branch against `main`; diff is limited to v0.7 retrieval source/tests/docs/calibration data plus README documentation.
+- [ ] Update PR #14 with exact final head SHA, final CI evidence, retained gold labels, Q16/Q24 control rationale, and shortlist-admission review fix.
 - [ ] Leave PR #14 unmerged pending explicit integration approval.
 
 ## Scientific boundary
