@@ -3,6 +3,11 @@ import json
 from pathlib import Path
 import sys
 
+from question_radar.context_pack import (
+    build_context_pack,
+    render_context_json,
+    render_context_markdown,
+)
 from question_radar.export import export_evaluations, load_evaluations
 from question_radar.learning import LearningObservation
 from question_radar.learning_export import (
@@ -11,6 +16,9 @@ from question_radar.learning_export import (
 )
 from question_radar.learning_frontier import render_learning_frontier
 from question_radar.learning_storage import LearningObservationStore
+from question_radar.lineage import QuestionNode, QuestionRelation
+from question_radar.lineage_export import load_lineage_bundle
+from question_radar.lineage_storage import QuestionLineageStore
 from question_radar.models import QuestionEvaluation
 from question_radar.profile_export import export_profiles, load_profiles
 from question_radar.profile_storage import QuestionProfileStore
@@ -133,6 +141,71 @@ def build_parser() -> argparse.ArgumentParser:
     learning_export.add_argument("output")
     learning_export.add_argument("--format", choices=("jsonl",), required=True)
 
+    lineage_parser = subparsers.add_parser(
+        "lineage",
+        help="work with explicit Question Lineage v0.4 graphs",
+    )
+    lineage_subparsers = lineage_parser.add_subparsers(
+        dest="lineage_command",
+        required=True,
+    )
+
+    lineage_node = lineage_subparsers.add_parser(
+        "node",
+        help="work with v0.4 question nodes",
+    )
+    node_subparsers = lineage_node.add_subparsers(
+        dest="node_command",
+        required=True,
+    )
+    node_add = node_subparsers.add_parser(
+        "add",
+        help="validate and store one QuestionNode JSON",
+    )
+    node_add.add_argument("node_json")
+    node_subparsers.add_parser("list", help="list stored question nodes")
+    node_show = node_subparsers.add_parser(
+        "show",
+        help="show one complete question node",
+    )
+    node_show.add_argument("question_id")
+
+    lineage_relation = lineage_subparsers.add_parser(
+        "relation",
+        help="work with explicit v0.4 question relations",
+    )
+    relation_subparsers = lineage_relation.add_subparsers(
+        dest="relation_command",
+        required=True,
+    )
+    relation_add = relation_subparsers.add_parser(
+        "add",
+        help="validate and store one QuestionRelation JSON",
+    )
+    relation_add.add_argument("relation_json")
+    relation_list = relation_subparsers.add_parser(
+        "list",
+        help="list stored question relations",
+    )
+    relation_list.add_argument("--question")
+
+    lineage_import = lineage_subparsers.add_parser(
+        "import",
+        help="atomically import a mixed v0.4 JSONL corpus",
+    )
+    lineage_import.add_argument("input")
+
+    lineage_context = lineage_subparsers.add_parser(
+        "context",
+        help="render a deterministic Context Pack",
+    )
+    lineage_context.add_argument("question_id")
+    lineage_context.add_argument(
+        "--format", choices=("markdown", "json"), default="markdown"
+    )
+    lineage_context.add_argument("--ancestors", type=int, default=3)
+    lineage_context.add_argument("--descendants", type=int, default=1)
+
     return parser
 
 
@@ -173,6 +246,27 @@ def _print_learning_observation(observation: LearningObservation) -> None:
     print(f"updated_at: {observation.updated_at}")
 
 
+def _print_lineage_nodes(nodes: list[QuestionNode]) -> None:
+    for node in nodes:
+        print(f"{node.id}\t{node.question}")
+
+
+def _print_lineage_node(node: QuestionNode) -> None:
+    print(f"id: {node.id}")
+    print(f"question: {node.question}")
+    print(f"source: {node.source}")
+    print(f"source_ref: {node.source_ref}")
+    print(f"created_at: {node.created_at}")
+
+
+def _print_lineage_relations(relations: list[QuestionRelation]) -> None:
+    for relation in relations:
+        print(
+            f"{relation.relation_type}\t{relation.source_question_id}\t"
+            f"{relation.target_question_id}\t{relation.id}"
+        )
+
+
 def _load_json(path: str | Path) -> dict:
     try:
         return json.loads(Path(path).read_text(encoding="utf-8"))
@@ -190,6 +284,14 @@ def _load_single_profile_json(path: str | Path) -> QuestionProfile:
 
 def _load_single_learning_json(path: str | Path) -> LearningObservation:
     return LearningObservation.from_dict(_load_json(path))
+
+
+def _load_single_lineage_node_json(path: str | Path) -> QuestionNode:
+    return QuestionNode.from_dict(_load_json(path))
+
+
+def _load_single_lineage_relation_json(path: str | Path) -> QuestionRelation:
+    return QuestionRelation.from_dict(_load_json(path))
 
 
 def _handle_profile_command(
@@ -272,12 +374,77 @@ def _handle_learning_command(
     raise ValueError("unknown learning command")
 
 
+def _handle_lineage_command(
+    args: argparse.Namespace,
+    lineage_store: QuestionLineageStore,
+    profile_store: QuestionProfileStore,
+    learning_store: LearningObservationStore,
+) -> int:
+    if args.lineage_command == "node":
+        if args.node_command == "add":
+            node = _load_single_lineage_node_json(args.node_json)
+            lineage_store.insert_node(node)
+            print(f"added {node.id}")
+            return 0
+
+        if args.node_command == "list":
+            _print_lineage_nodes(lineage_store.list_nodes())
+            return 0
+
+        if args.node_command == "show":
+            node = lineage_store.get_node(args.question_id)
+            if node is None:
+                raise ValueError(f"question node not found: {args.question_id}")
+            _print_lineage_node(node)
+            return 0
+
+        raise ValueError("unknown lineage node command")
+
+    if args.lineage_command == "relation":
+        if args.relation_command == "add":
+            relation = _load_single_lineage_relation_json(args.relation_json)
+            lineage_store.insert_relation(relation)
+            print(f"added {relation.id} type={relation.relation_type}")
+            return 0
+
+        if args.relation_command == "list":
+            _print_lineage_relations(lineage_store.list_relations(args.question))
+            return 0
+
+        raise ValueError("unknown lineage relation command")
+
+    if args.lineage_command == "import":
+        nodes, relations = load_lineage_bundle(args.input)
+        lineage_store.insert_bundle(nodes, relations)
+        print(f"imported {len(nodes)} nodes and {len(relations)} relations")
+        return 0
+
+    if args.lineage_command == "context":
+        pack = build_context_pack(
+            args.question_id,
+            lineage_store,
+            profile_store,
+            learning_store,
+            ancestor_depth=args.ancestors,
+            descendant_depth=args.descendants,
+        )
+        if args.format == "json":
+            rendered = render_context_json(pack)
+        else:
+            rendered = render_context_markdown(pack)
+        print(rendered, end="")
+        return 0
+
+    raise ValueError("unknown lineage command")
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = build_parser()
     args = parser.parse_args(argv)
     store = QuestionStore(args.db)
     profile_store = QuestionProfileStore(args.db)
     learning_store = LearningObservationStore(args.db)
+    lineage_store = QuestionLineageStore(args.db)
 
     try:
         if args.command == "profile":
@@ -285,6 +452,14 @@ def main(argv: list[str] | None = None) -> int:
 
         if args.command == "learning":
             return _handle_learning_command(args, learning_store)
+
+        if args.command == "lineage":
+            return _handle_lineage_command(
+                args,
+                lineage_store,
+                profile_store,
+                learning_store,
+            )
 
         if args.command == "add":
             evaluation = _load_single_json(args.evaluation_json)
