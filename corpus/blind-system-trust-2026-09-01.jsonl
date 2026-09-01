@@ -1,0 +1,24 @@
+{"id":"system-trust-blind-2026-09-01-001","question":"¿Qué significa realmente “entender” un sistema lo suficiente como para tomar una decisión apoyándose en él?"}
+{"id":"system-trust-blind-2026-09-01-002","question":"¿Cuándo una persona confía en un resultado porque tiene buenas razones y cuándo simplemente se acostumbró a aceptarlo?"}
+{"id":"system-trust-blind-2026-09-01-003","question":"¿Qué señales permiten detectar que un sistema que funcionaba bien dejó de funcionar bien?"}
+{"id":"system-trust-blind-2026-09-01-004","question":"¿Cómo puede una persona saber si un error proviene del sistema, de los datos que recibió, de quien lo configuró o del contexto en el que se está usando?"}
+{"id":"system-trust-blind-2026-09-01-005","question":"¿Qué ocurre cuando la recomendación del sistema contradice la experiencia de alguien que lleva años trabajando con ese tipo de casos?"}
+{"id":"system-trust-blind-2026-09-01-006","question":"¿Puede una explicación convincente de un modelo aumentar la confianza sin aumentar realmente la capacidad de detectar cuándo se equivoca?"}
+{"id":"system-trust-blind-2026-09-01-007","question":"¿Qué cambia en una decisión cuando rechazar la recomendación automática exige justificarse, pero aceptarla no?"}
+{"id":"system-trust-blind-2026-09-01-008","question":"¿Quién asume realmente la responsabilidad cuando una decisión pasa por una cadena formada por datos, sensores, software, modelos, procedimientos y personas?"}
+{"id":"system-trust-blind-2026-09-01-009","question":"¿Qué ocurre con la capacidad de juicio de una persona después de años de delegar determinadas decisiones a un sistema?"}
+{"id":"system-trust-blind-2026-09-01-010","question":"¿Una persona sigue supervisando realmente un sistema si interviene tan pocas veces que pierde la práctica necesaria para detectar una anomalía?"}
+{"id":"system-trust-blind-2026-09-01-011","question":"¿Qué tipo de errores termina viendo una organización y cuáles permanecen invisibles porque el sistema nunca genera una alerta sobre ellos?"}
+{"id":"system-trust-blind-2026-09-01-012","question":"¿Cómo cambia la confianza en una herramienta cuando sus falsos positivos son visibles inmediatamente pero sus falsos negativos solo se descubren meses después, o nunca?"}
+{"id":"system-trust-blind-2026-09-01-013","question":"¿Puede un sistema ser más preciso que una persona y, aun así, ser peor para ciertas decisiones?"}
+{"id":"system-trust-blind-2026-09-01-014","question":"¿Qué debería significar que un sistema funciona “bien” cuando los costos de equivocarse no son iguales para todos los casos?"}
+{"id":"system-trust-blind-2026-09-01-015","question":"¿Qué ocurre cuando las métricas utilizadas para demostrar que una herramienta funciona no coinciden con aquello que realmente importa a quien debe tomar la decisión?"}
+{"id":"system-trust-blind-2026-09-01-016","question":"¿Hasta qué punto una recomendación automática modifica la decisión antes incluso de que la persona empiece a evaluarla?"}
+{"id":"system-trust-blind-2026-09-01-017","question":"¿Una persona puede evaluar de manera independiente una herramienta de la que depende para hacer su trabajo, conservar su productividad o justificar sus decisiones?"}
+{"id":"system-trust-blind-2026-09-01-018","question":"¿Qué ocurre cuando una organización exige usar un sistema que los trabajadores consideran poco confiable, pero castiga también las decisiones tomadas fuera de él?"}
+{"id":"system-trust-blind-2026-09-01-019","question":"¿Qué incentivos tiene un proveedor, un equipo técnico o una organización para mostrar los límites y fallas de un sistema que necesita que otros adopten?"}
+{"id":"system-trust-blind-2026-09-01-020","question":"¿Más transparencia ayuda siempre, o puede producir una ilusión de comprensión que haga a las personas todavía más confiadas?"}
+{"id":"system-trust-blind-2026-09-01-021","question":"¿Cuánto conocimiento técnico necesita realmente una persona para usar bien una herramienta, y cuánto conocimiento técnico podría incluso distraerla de otras señales importantes?"}
+{"id":"system-trust-blind-2026-09-01-022","question":"¿Qué sucede cuando el sistema acierta tantas veces que sus usuarios dejan de considerar seriamente la posibilidad de que esta vez esté equivocado?"}
+{"id":"system-trust-blind-2026-09-01-023","question":"¿Rechazar una recomendación automática es necesariamente ejercer autonomía, o también puede convertirse en una reacción automática contra la automatización?"}
+{"id":"system-trust-blind-2026-09-01-024","question":"¿El problema principal es que las personas no entienden los sistemas que usan, o que tampoco pueden comprender por completo muchas de las decisiones complejas que toman sin ellos?"}

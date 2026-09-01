@@ -23,6 +23,9 @@ def _entry_payload(result) -> dict:
         "jaccard_score": result.jaccard_score,
         "matched_query_tokens": list(result.matched_query_tokens),
         "residual_query_tokens": list(result.residual_query_tokens),
+        "matched_token_count": result.matched_token_count,
+        "query_token_count": result.query_token_count,
+        "query_coverage": result.query_coverage,
         "token_contributions": [
             {
                 "token": contribution.token,
@@ -42,6 +45,8 @@ def retrieval_pack_payload(pack: RetrievalPack) -> dict:
         "corpus_size": pack.corpus_size,
         "results": [_entry_payload(result) for result in pack.results],
         "review_required": pack.review_required,
+        "abstained": pack.abstained,
+        "abstention_reason": pack.abstention_reason,
         "review_boundary": _REVIEW_BOUNDARY,
     }
 
@@ -57,7 +62,7 @@ def render_retrieval_json(pack: RetrievalPack) -> str:
 
 def render_retrieval_markdown(pack: RetrievalPack) -> str:
     lines = [
-        "# Unified Candidate Retrieval v0.6",
+        "# Unified Candidate Retrieval v0.7",
         "",
         "## Candidate",
         pack.candidate_question,
@@ -67,7 +72,15 @@ def render_retrieval_markdown(pack: RetrievalPack) -> str:
         "## Retrieved Prior Questions",
     ]
 
-    if not pack.results:
+    if pack.abstained:
+        lines.extend(
+            [
+                "ABSTAINED",
+                f"- abstention_reason: {pack.abstention_reason}",
+                "- results: none",
+            ]
+        )
+    elif not pack.results:
         lines.append("none")
     else:
         for index, result in enumerate(pack.results, start=1):
@@ -82,6 +95,9 @@ def render_retrieval_markdown(pack: RetrievalPack) -> str:
                     f"- provenance: {provenance}",
                     f"- bm25_score: {result.bm25_score:.6f}",
                     f"- jaccard_score: {result.jaccard_score:.6f}",
+                    f"- matched_token_count: {result.matched_token_count}",
+                    f"- query_token_count: {result.query_token_count}",
+                    f"- query_coverage: {result.query_coverage:.6f}",
                     f"- matched_query_tokens: {matched}",
                     f"- residual_query_tokens: {residual}",
                 ]

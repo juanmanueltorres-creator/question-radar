@@ -4,11 +4,13 @@ from collections import Counter
 from dataclasses import dataclass
 import math
 
-from question_radar.novelty import compare_questions, normalize_tokens
+from question_radar.novelty import compare_questions
+from question_radar.retrieval_text import normalize_retrieval_tokens
 
 
 BM25_K1 = 1.5
 BM25_B = 0.75
+ABSTENTION_REASONS = ("no_lexical_evidence",)
 _SOURCE_PAIRS = {
     ("v0.2", "profile"),
     ("v0.4", "lineage_node"),
@@ -58,6 +60,9 @@ class RetrievalEvidence:
     matched_query_tokens: tuple[str, ...]
     residual_query_tokens: tuple[str, ...]
     token_contributions: tuple[TokenContribution, ...]
+    matched_token_count: int
+    query_token_count: int
+    query_coverage: float
 
 
 @dataclass(frozen=True, slots=True)
@@ -67,6 +72,8 @@ class RetrievalPack:
     corpus_size: int
     results: tuple[RetrievalEvidence, ...]
     review_required: bool
+    abstained: bool
+    abstention_reason: str | None
 
 
 def _idf(corpus_size: int, document_frequency: int) -> float:
@@ -77,26 +84,32 @@ def _idf(corpus_size: int, document_frequency: int) -> float:
     )
 
 
+def _abstained_pack(candidate_question: str, corpus_size: int) -> RetrievalPack:
+    return RetrievalPack(
+        retrieval_version="v0.7",
+        candidate_question=candidate_question.strip(),
+        corpus_size=corpus_size,
+        results=(),
+        review_required=True,
+        abstained=True,
+        abstention_reason=ABSTENTION_REASONS[0],
+    )
+
+
 def retrieve_candidates(
     candidate_question: str,
     corpus: tuple[CorpusEntry, ...],
     limit: int = 5,
 ) -> RetrievalPack:
-    query_tokens = normalize_tokens(candidate_question)
+    query_tokens = normalize_retrieval_tokens(candidate_question)
     if limit < 1:
         raise ValueError("limit must be at least 1")
 
     if not corpus:
-        return RetrievalPack(
-            retrieval_version="v0.6",
-            candidate_question=candidate_question.strip(),
-            corpus_size=0,
-            results=(),
-            review_required=True,
-        )
+        return _abstained_pack(candidate_question, 0)
 
     document_tokens = tuple(
-        normalize_tokens(entry.question)
+        normalize_retrieval_tokens(entry.question)
         for entry in corpus
     )
     corpus_size = len(corpus)
@@ -109,6 +122,7 @@ def retrieve_candidates(
         document_frequency.update(set(tokens))
 
     unique_query_tokens = tuple(dict.fromkeys(query_tokens))
+    query_token_count = len(unique_query_tokens)
     results: list[RetrievalEvidence] = []
 
     for entry, tokens in zip(corpus, document_tokens):
@@ -146,9 +160,14 @@ def retrieve_candidates(
         contributions.sort(key=lambda item: (-item.contribution, item.token))
         bm25_score = round(sum(item.contribution for item in contributions), 6)
         matched = tuple(sorted({item.token for item in contributions}))
+        matched_token_count = len(matched)
         document_token_set = set(tokens)
         residual = tuple(
             sorted(set(unique_query_tokens) - document_token_set)
+        )
+        query_coverage = round(
+            matched_token_count / max(1, query_token_count),
+            6,
         )
         jaccard = compare_questions(
             candidate_question,
@@ -164,11 +183,22 @@ def retrieve_candidates(
                 matched_query_tokens=matched,
                 residual_query_tokens=residual,
                 token_contributions=tuple(contributions),
+                matched_token_count=matched_token_count,
+                query_token_count=query_token_count,
+                query_coverage=query_coverage,
             )
         )
 
-    results.sort(
+    evidence_results = [
+        result for result in results if result.matched_token_count > 0
+    ]
+    if not evidence_results:
+        return _abstained_pack(candidate_question, corpus_size)
+
+    evidence_results.sort(
         key=lambda result: (
+            -result.matched_token_count,
+            -result.query_coverage,
             -result.bm25_score,
             -result.jaccard_score,
             result.entry.id,
@@ -178,9 +208,11 @@ def retrieve_candidates(
     )
 
     return RetrievalPack(
-        retrieval_version="v0.6",
+        retrieval_version="v0.7",
         candidate_question=candidate_question.strip(),
         corpus_size=corpus_size,
-        results=tuple(results[:limit]),
+        results=tuple(evidence_results[:limit]),
         review_required=True,
+        abstained=False,
+        abstention_reason=None,
     )
