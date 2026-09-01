@@ -212,7 +212,7 @@ The layer compares a new candidate against stored v0.4 `QuestionNode` text using
 
 The central boundary is:
 
-> **Question Radar may surface evidence that two questions occupy similar or different parts of the corpus. It does not decide that they mean the same thing.**
+> **Question Radar may surface evidence that two questions occupy similar or different lexical neighborhoods of the corpus. It does not decide that they mean the same thing.**
 
 Similarity is intentionally transparent:
 
@@ -226,7 +226,7 @@ Normalization removes accents and a small set of function words, but v0.5 perfor
 
 Every `NoveltyPack` has `review_required = true`. Possible labels such as `already_represented`, `refines_existing`, `operationalizes_existing`, `challenges_assumption`, and `possible_new_branch` are review prompts only. They do not create `QuestionRelation` records or promote questions into a master library.
 
-Batch analysis can surface provisional lexical clusters, but a cluster is likewise not a semantic truth or a master branch.
+Batch analysis can surface provisional **lexical** clusters, but a cluster is likewise not a semantic truth or a master branch. The blind organizational-memory benchmark is deliberately kept as a negative control: human review connects Q8/Q9/Q10/Q25 around obsolescence and adaptive forgetting, while the original strings do not share enough lexical evidence to form that cluster at the default threshold. v0.5 preserves that miss instead of hiding it behind uninspectable semantic inference.
 
 ---
 
@@ -285,7 +285,7 @@ v0.5 adds **no SQLite tables**. Novelty packs and clusters are derived, read-onl
 
 The repository is tested as a small software system, not only as a collection of scoring examples.
 
-**Latest verified CI suite: 273 tests passing on Python 3.11.**
+**Latest verified CI suite: 275 tests passing on Python 3.11.**
 
 Coverage includes:
 
@@ -303,10 +303,10 @@ Coverage includes:
 - v0.5 accent-insensitive lexical normalization and weighted Jaccard similarity;
 - deterministic nearest-question ranking and residual-token evidence;
 - provisional cluster construction with deterministic connected components;
-- strict candidate JSONL validation;
+- strict candidate JSONL validation, including malformed-input rejection;
 - deterministic v0.5 Markdown and JSON rendering;
 - byte-for-byte SQLite non-mutation checks for `novelty compare` and `novelty batch`;
-- blind benchmark regressions for software-domain convergence and organizational-memory residual evidence;
+- blind benchmark regressions for software-domain convergence, organizational-memory residual evidence, exact 25-question preservation, and the known lexical false negative;
 - JSONL/CSV serialization where supported;
 - CLI `add`, `list`, `show`, `top`, `frontier`, `import`, `export`, `lineage`, and `novelty` flows;
 - compatibility between v0.1, v0.2, v0.3, v0.4, and derived v0.5 analysis in one SQLite database;
@@ -496,7 +496,7 @@ v0.5 does not add a persisted domain table. Its main derived records are:
 - `CandidateQuestion`
 - `PossibleCluster`
 
-`NoveltyPack` always requires human review. Similarity scores are retrieval evidence, not semantic-equivalence scores, and provisional interpretations are never written into v0.4 lineage automatically.
+`NoveltyPack` always requires human review. Similarity scores are lexical retrieval evidence, not semantic-equivalence scores, and provisional interpretations are never written into v0.4 lineage automatically.
 
 ---
 
