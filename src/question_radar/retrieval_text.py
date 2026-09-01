@@ -36,16 +36,18 @@ def _ascii_words(text: str) -> tuple[str, ...]:
 
 
 def _normalize_plural(token: str) -> str:
-    if len(token) >= 6 and token.endswith("es") and token[-3] not in "aeiou":
-        stem = token[:-2]
-        if len(stem) >= 4:
-            return stem
-
-    if len(token) >= 5 and token.endswith("s") and token[-2] in "aeiou":
-        stem = token[:-1]
-        if len(stem) >= 4:
-            return stem
-
+    # These suffixes intentionally cover only a narrow set of transparent
+    # nominal/adjectival plurals. They are not a general Spanish stemmer.
+    if len(token) >= 7 and token.endswith("iones"):
+        return token[:-2]
+    if len(token) >= 6 and token.endswith("ores"):
+        return token[:-2]
+    if len(token) >= 6 and token.endswith("emas"):
+        return token[:-1]
+    if len(token) >= 6 and token.endswith("onas"):
+        return token[:-1]
+    if len(token) >= 5 and token.endswith("os") and not token.endswith("mos"):
+        return token[:-1]
     return token
 
 
