@@ -18,7 +18,6 @@ STOPWORDS = frozenset(
         "el",
         "en",
         "es",
-        "esta",
         "este",
         "for",
         "la",
