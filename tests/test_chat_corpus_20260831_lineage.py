@@ -16,7 +16,7 @@ def test_aug31_lineage_corpus_preserves_14_canonical_questions():
     expected_ids = {f'vault-2026-08-31-{number:03d}' for number in range(1, 15)}
     assert len(nodes) == 14
     assert {node.id for node in nodes} == expected_ids
-    assert all(node.source == 'vault' for node in nodes)
+    assert all(node.source == 'corpus' for node in nodes)
     assert all(node.source_ref == SOURCE_REF for node in nodes)
     assert len(relations) == 8
 
