@@ -21,6 +21,13 @@ def test_candidate_jsonl_rejects_duplicate_ids(tmp_path):
         load_candidate_questions(path)
 
 
+def test_candidate_jsonl_rejects_malformed_json(tmp_path):
+    path = tmp_path / "candidates.jsonl"
+    path.write_text('{"id":"q1","question":', encoding="utf-8")
+    with pytest.raises(ValueError, match="malformed JSON on line 1"):
+        load_candidate_questions(path)
+
+
 def test_candidate_jsonl_rejects_unknown_fields(tmp_path):
     path = tmp_path / "candidates.jsonl"
     path.write_text(
