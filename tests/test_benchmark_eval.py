@@ -178,3 +178,17 @@ def test_invalid_k_is_rejected() -> None:
         assert str(exc) == "k must be at least 1"
     else:
         raise AssertionError("expected ValueError")
+
+
+def test_gold_reference_missing_from_evaluation_corpus_fails_closed() -> None:
+    corpus = (_entry("present", "alpha beta"),)
+    case = _positive_case("q1", "alpha beta", (_judgment("missing"),))
+
+    try:
+        evaluate_benchmark((case,), corpus, k=5)
+    except ValueError as exc:
+        assert str(exc) == (
+            "gold judgment reference not found in evaluation corpus: v0.2:missing"
+        )
+    else:
+        raise AssertionError("expected ValueError")
