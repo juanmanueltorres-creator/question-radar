@@ -108,7 +108,7 @@ That silently collapses two documents when a v0.2 profile and v0.4 node share th
 - [x] Add a failing cross-version duplicate-ID test first.
 - [x] Observe RED: `1 failed, 298 passed`.
 - [x] Replace ID-keyed token storage with a per-entry token tuple.
-- [x] Verify GREEN: `299 passed`.
+- [x] Verify GREEN: `299 passed` before the final installed-CLI verification was added.
 
 No ranking weight or benchmark expectation was changed to fix this bug.
 
@@ -146,7 +146,7 @@ JSON is deterministic with `ensure_ascii=False`, `indent=2`, `sort_keys=True`, a
 
 The original plan proposed editing the historical `cli.py`. During implementation review, the safer boundary was to leave that module untouched.
 
-`pyproject.toml` now routes the installed command to:
+`pyproject.toml` routes the installed command to:
 
 ```text
 question-radar = question_radar.cli_v06:main
@@ -160,7 +160,7 @@ question-radar = question_radar.cli_v06:main
 
 This reduces regression risk while keeping the public executable name stable.
 
-### TDD sequence
+### TDD / verification sequence
 
 - [x] Write renderer + CLI tests before the facade exists.
 - [x] Verify RED for missing `retrieval_export`.
@@ -169,6 +169,7 @@ This reduces regression risk while keeping the public executable name stable.
 - [x] Verify RED for missing `cli_v06`.
 - [x] Implement the facade and update the console-script entrypoint.
 - [x] Verify mixed-corpus CLI retrieval and missing-DB fail-closed behavior.
+- [x] Execute the installed `question-radar retrieval --help` and `question-radar retrieval compare --help` commands from pytest.
 
 ---
 
@@ -221,37 +222,28 @@ assert "qv2-cal-013" in top_5_ids
 - v0.6 spec/plan docs
 - PR #12 metadata
 
-### Documentation requirements
+### Documentation
 
-- [ ] Set README current version to `v0.6 · Unified Candidate Retrieval + v0.5 Corpus-Relative Novelty`.
-- [ ] Document v0.2 + v0.4 visibility.
-- [ ] Document BM25 primary / Jaccard secondary evidence.
-- [ ] Document `cli_v06.py` delegation boundary.
-- [ ] Document blind Q7 golden regression and calibration provenance.
-- [ ] Document exclusions: vault auto-read, embeddings, LLM runtime, automatic semantic relations.
+- [x] Set README current version to `v0.6 · Unified Candidate Retrieval + v0.5 Corpus-Relative Novelty`.
+- [x] Document v0.2 + v0.4 visibility.
+- [x] Document BM25 primary / Jaccard secondary evidence.
+- [x] Document `cli_v06.py` delegation boundary.
+- [x] Document blind Q7 golden regression and calibration provenance.
+- [x] Document exclusions: vault auto-read, embeddings, LLM runtime, automatic semantic relations.
 
-### Final verification
+### Verification completed before final diff review
 
-Run/confirm:
-
-```bash
-pytest -q
-python -m compileall -q src
-question-radar retrieval --help
-question-radar retrieval compare --help
-```
-
-Also verify:
-
-```python
-project["dependencies"] == []
-```
-
-Review branch diff against `main`; only v0.6 implementation, tests, docs, console-script routing, and blind benchmark changes should appear.
+- [x] `pytest -q` → **300 passed** on Python 3.11.
+- [x] `python -m compileall -q src` → success.
+- [x] installed `question-radar retrieval --help` → exit 0.
+- [x] installed `question-radar retrieval compare --help` → exit 0.
+- [x] `project.dependencies == []` remains true in `pyproject.toml`.
+- [x] SQLite read-only/fail-closed tests pass for v0.6.
+- [x] golden Q7 retrieval regression passes.
 
 ### PR
 
-PR #12 remains draft until final verification is complete. It must state:
+PR #12 remains draft for final human review. Its final body must state:
 
 - blind #3 / Q7 motivation;
 - v0.2 + v0.4 corpus scope;
@@ -259,7 +251,7 @@ PR #12 remains draft until final verification is complete. It must state:
 - SQLite read-only/fail-closed boundary;
 - no semantic authority or persistence side effects;
 - golden Q7 result;
-- observed final test count;
+- final test count: **300**;
 - no v0.1–v0.5 persisted contract changes.
 
 Do not merge without a separate explicit user instruction.
