@@ -36,8 +36,9 @@ def _actual_baseline() -> str:
 
 
 def test_committed_v07_baseline_matches_current_frozen_evaluation_byte_for_byte() -> None:
-    expected = BASELINE_PATH.read_text(encoding="utf-8")
     actual = _actual_baseline()
+    assert BASELINE_PATH.exists(), f"generated baseline follows:\n{actual}"
+    expected = BASELINE_PATH.read_text(encoding="utf-8")
 
     assert expected == actual
 
