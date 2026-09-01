@@ -218,7 +218,7 @@ question-radar novelty batch INPUT.jsonl --format markdown
 question-radar novelty batch INPUT.jsonl --format json
 ```
 
-`compare` reads the existing v0.4 question-node store from `--db` and performs no writes.
+`compare` and `batch` read an already-existing v0.4 lineage snapshot through SQLite `mode=ro`. They fail closed when the database does not exist or when the v0.4 lineage tables are absent; analysis must never create or migrate a database as a side effect.
 
 `batch` input JSONL uses:
 
@@ -249,7 +249,7 @@ JSON output must be sorted-key deterministic and end with a newline, matching ex
 
 v0.5 introduces no new SQLite tables.
 
-`novelty compare` and `novelty batch` are read-only. Tests snapshot database contents before and after analysis and verify no mutation.
+`novelty compare` and `novelty batch` use a dedicated read-only loader backed by SQLite URI `mode=ro`. They do not call v0.4 initialization logic. Tests verify three separate invariants: an existing v0.4 database is unchanged byte-for-byte, a missing database is not created, and a legacy database without v0.4 lineage tables is not migrated.
 
 No existing `QuestionNode`, `QuestionProfile`, `LearningObservation`, `QuestionRelation`, Context Pack, rubric or corpus contract changes.
 
@@ -259,6 +259,7 @@ Create:
 
 - `src/question_radar/novelty.py`
 - `src/question_radar/novelty_export.py`
+- `src/question_radar/novelty_storage.py`
 - `tests/test_novelty.py`
 - `tests/test_novelty_export.py`
 - `tests/test_novelty_cli.py`
@@ -294,7 +295,7 @@ v0.5 is acceptable when:
 2. new normalization/similarity tests pass;
 3. ranking is deterministic;
 4. Markdown and JSON are deterministic;
-5. compare and batch commands are read-only;
+5. compare and batch commands are read-only and fail closed without mutating or creating SQLite state;
 6. no automatic lineage is created;
 7. benchmark regression tests pass without overstating semantic authority;
 8. the real blind-memory corpus is preserved unchanged and its lexical ceiling is documented;
