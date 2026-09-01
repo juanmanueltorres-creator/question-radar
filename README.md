@@ -87,6 +87,7 @@ The system is deliberately transparent. There is no external LLM deciding what s
 - **Explicit directed question relations** with bounded, cycle-safe graph traversal.
 - **Derived Context Packs** with deterministic Markdown and JSON output.
 - **Read-only corpus-relative novelty packs** with inspectable lexical overlap and residual-token evidence.
+- **Fail-closed SQLite novelty reads** using `mode=ro`: analysis never creates a missing database or migrates a legacy one.
 - **Provisional lexical clustering** that remains an analysis artifact rather than a persisted claim.
 - **CLI design** with namespaced commands for scoring, profiling, learning-frontier, lineage, and novelty workflows.
 - **Explicit import/export boundaries** so local data stays local unless it is intentionally exported.
@@ -228,6 +229,8 @@ Every `NoveltyPack` has `review_required = true`. Possible labels such as `alrea
 
 Batch analysis can surface provisional **lexical** clusters, but a cluster is likewise not a semantic truth or a master branch. The blind organizational-memory benchmark is deliberately kept as a negative control: human review connects Q8/Q9/Q10/Q25 around obsolescence and adaptive forgetting, while the original strings do not share enough lexical evidence to form that cluster at the default threshold. v0.5 preserves that miss instead of hiding it behind uninspectable semantic inference.
 
+The novelty CLI opens only an already-existing v0.4 lineage database in SQLite read-only mode. A missing database or a database without the v0.4 lineage tables fails closed; v0.5 never initializes or migrates SQLite while analyzing a candidate.
+
 ---
 
 ## Architecture
@@ -285,7 +288,7 @@ v0.5 adds **no SQLite tables**. Novelty packs and clusters are derived, read-onl
 
 The repository is tested as a small software system, not only as a collection of scoring examples.
 
-**Latest verified CI suite: 275 tests passing on Python 3.11.**
+**Latest verified CI suite: 277 tests passing on Python 3.11.**
 
 Coverage includes:
 
@@ -305,7 +308,8 @@ Coverage includes:
 - provisional cluster construction with deterministic connected components;
 - strict candidate JSONL validation, including malformed-input rejection;
 - deterministic v0.5 Markdown and JSON rendering;
-- byte-for-byte SQLite non-mutation checks for `novelty compare` and `novelty batch`;
+- byte-for-byte SQLite non-mutation checks for existing v0.4 databases;
+- fail-closed tests proving novelty analysis does not create a missing database or migrate a legacy database;
 - blind benchmark regressions for software-domain convergence, organizational-memory residual evidence, exact 25-question preservation, and the known lexical false negative;
 - JSONL/CSV serialization where supported;
 - CLI `add`, `list`, `show`, `top`, `frontier`, `import`, `export`, `lineage`, and `novelty` flows;
@@ -407,9 +411,9 @@ question-radar novelty batch corpus/blind-memory-2026-09-01.jsonl \
   --format markdown
 ```
 
-The novelty commands only read existing question nodes and relations from SQLite. They do not insert, update, delete, create lineage, or promote questions.
+The novelty commands only read existing v0.4 question nodes and relations through SQLite `mode=ro`. They do not insert, update, delete, initialize tables, create lineage, migrate legacy databases, or promote questions.
 
-Use a different local database at any time:
+Use a different existing v0.4 database at any time:
 
 ```bash
 question-radar --db /path/to/questions.sqlite3 novelty compare "¿Qué pregunta falta?"
@@ -531,7 +535,7 @@ Question Radar is local-first by design:
 - no user identity model or learner ranking exists;
 - published corpora are calibration judgments or explicit benchmark inputs, not truth labels and not scores of people;
 - v0.4 performs no automatic historical migration or chat ingestion;
-- v0.5 novelty commands are read-only and create no automatic semantic relations or promotions.
+- v0.5 novelty commands use a fail-closed read-only SQLite path and create no automatic semantic relations or promotions.
 
 ---
 
