@@ -95,24 +95,23 @@ def retrieve_candidates(
             review_required=True,
         )
 
-    document_tokens = {
-        entry.id: normalize_tokens(entry.question)
+    document_tokens = tuple(
+        normalize_tokens(entry.question)
         for entry in corpus
-    }
+    )
     corpus_size = len(corpus)
     average_document_length = sum(
-        len(tokens) for tokens in document_tokens.values()
+        len(tokens) for tokens in document_tokens
     ) / corpus_size
 
     document_frequency: Counter[str] = Counter()
-    for tokens in document_tokens.values():
+    for tokens in document_tokens:
         document_frequency.update(set(tokens))
 
     unique_query_tokens = tuple(dict.fromkeys(query_tokens))
     results: list[RetrievalEvidence] = []
 
-    for entry in corpus:
-        tokens = document_tokens[entry.id]
+    for entry, tokens in zip(corpus, document_tokens):
         frequencies = Counter(tokens)
         document_length = len(tokens)
         contributions: list[TokenContribution] = []
@@ -173,6 +172,8 @@ def retrieve_candidates(
             -result.bm25_score,
             -result.jaccard_score,
             result.entry.id,
+            result.entry.source_version,
+            result.entry.source_kind,
         )
     )
 
