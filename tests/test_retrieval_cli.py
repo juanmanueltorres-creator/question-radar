@@ -142,3 +142,15 @@ def test_installed_cli_exposes_retrieval_help_commands():
         )
         assert completed.returncode == 0, completed.stderr
         assert "usage:" in completed.stdout.lower()
+
+
+def test_root_help_mentions_retrieval_namespace():
+    completed = subprocess.run(
+        ["question-radar", "--help"],
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+
+    assert completed.returncode == 0, completed.stderr
+    assert "retrieval" in completed.stdout
