@@ -1,7 +1,7 @@
 # Corpus-Relative Novelty v0.5 — Design Specification
 
 Date: 2026-09-01
-Status: approved in conversation
+Status: approved in conversation; calibrated during implementation
 Repository: `juanmanueltorres-creator/question-radar`
 Target branch: `feat/corpus-relative-novelty-v0.5`
 
@@ -9,7 +9,7 @@ Target branch: `feat/corpus-relative-novelty-v0.5`
 
 Question Radar v0.5 adds a derived, evidence-first layer for comparing a new question against the existing question corpus without silently creating semantic truth, lineage edges, or master promotions.
 
-The new layer answers a narrower question than an LLM: not “is this a good question?”, but “what evidence in the existing corpus suggests that this question is already represented, refines an existing branch, operationalizes one, challenges an assumption, or may open a new branch?”
+The new layer answers a narrower question than an LLM: not “is this a good question?”, but “what inspectable evidence in the existing corpus suggests that this question is close to something already represented, or contains residual material that deserves human review?”
 
 v0.5 preserves the v0.4 rule that semantic relations remain explicit, revisable human judgments. The runtime may retrieve candidates and surface deterministic similarity evidence; it must not write `QuestionRelation` records, infer master status, or mutate canonical corpus state.
 
@@ -20,10 +20,10 @@ Two blind benchmarks on 2026-08-31/2026-09-01 showed a repeated pattern:
 - a general-purpose LLM can generate strong questions;
 - some top-ranked questions are already represented by existing masters;
 - non-top-ranked questions may have high structural value because they challenge an assumption;
-- several questions may form a meaningful cluster that reveals a new branch;
-- v0.4 can store explicit lineage after review, but does not surface corpus-relative novelty automatically.
+- several questions may appear, under human semantic review, to form a meaningful new family;
+- v0.4 can store explicit lineage after review, but does not surface corpus-relative retrieval evidence automatically.
 
-The second benchmark exposed a cluster around organizational forgetting and obsolescence: several questions were individually related to memory, but together introduced a distinct mechanism — forgetting can sometimes be adaptive. This establishes a requirement for cluster-level evidence, not only pairwise matching.
+The organizational-memory benchmark is also an important **negative control** for v0.5. Human review groups Q8/Q9/Q10/Q25 around obsolescence and adaptive forgetting, but their original wording has very little direct lexical overlap. A transparent no-stemming/no-synonym algorithm must not pretend to recover that semantic cluster. v0.5 therefore records what lexical clustering can surface and preserves this benchmark as evidence of the ceiling of lexical-only retrieval.
 
 ## 3. Goals
 
@@ -33,14 +33,15 @@ v0.5 must:
 2. compare it deterministically against stored `QuestionNode` questions;
 3. rank nearby corpus questions using dependency-free lexical evidence;
 4. expose why each candidate ranked where it did;
-5. expose terms/concepts present in the candidate but weakly represented in the nearest corpus questions;
+5. expose terms present in the candidate but weakly represented in the nearest corpus questions;
 6. surface nearby graph context when matching nodes already have v0.4 lineage;
-7. support batch analysis so a set of candidate questions can be grouped into possible clusters;
-8. label all semantic interpretations as proposals requiring review;
-9. produce deterministic Markdown and JSON outputs;
-10. remain read-only with respect to SQLite and canonical JSONL corpora;
-11. preserve v0.1–v0.4 contracts and tests unchanged;
-12. keep runtime dependencies limited to the Python standard library.
+7. support batch analysis so lexically connected candidate questions can be surfaced as provisional clusters;
+8. make lexical false negatives observable rather than papering over them with hidden semantic inference;
+9. label all interpretations as proposals requiring review;
+10. produce deterministic Markdown and JSON outputs;
+11. remain read-only with respect to SQLite and canonical JSONL corpora;
+12. preserve v0.1–v0.4 contracts and tests unchanged;
+13. keep runtime dependencies limited to the Python standard library.
 
 ## 4. Non-goals
 
@@ -49,6 +50,8 @@ v0.5 will not add:
 - embeddings;
 - vector databases;
 - external LLM or AI API calls;
+- stemming or synonym expansion;
+- domain dictionaries;
 - automatic semantic equivalence claims;
 - automatic `QuestionRelation` creation;
 - automatic master promotion;
@@ -60,7 +63,7 @@ v0.5 will not add:
 
 ## 5. Core principle
 
-> Question Radar may surface evidence that two questions occupy similar or different parts of the corpus. It does not decide that they mean the same thing.
+> Question Radar may surface evidence that two questions occupy similar or different lexical neighborhoods of the corpus. It does not decide that they mean the same thing.
 
 The v0.5 output is therefore a `NoveltyPack`, not a persisted judgment.
 
@@ -165,9 +168,9 @@ For the top `k` neighbors, compute:
 candidate_distinctive_tokens = candidate_tokens - union(neighbor_tokens)
 ```
 
-This is important because novelty can live in the residual. A question may strongly overlap with an existing branch while introducing a new mechanism such as `olvido`, `obsolescencia`, or `vigencia`.
+This is important because novelty can live in the residual. A question may overlap with an existing branch while introducing a new lexical mechanism such as `olvidar` or `obsolescencia`.
 
-The output must show these tokens explicitly rather than converting them into an opaque novelty score.
+The output must show these tokens explicitly rather than converting them into an opaque novelty score. Residual tokens are evidence for review, not proof that a concept is semantically novel.
 
 ## 10. Interpretation heuristics
 
@@ -179,9 +182,9 @@ Given highest similarity `s1` and candidate distinctive-token ratio `d`:
 - `refines_existing` may be proposed when `0.45 <= s1 < 0.75` and candidate token count is greater than the top neighbor token count;
 - `operationalizes_existing` may be proposed when `0.35 <= s1 < 0.75` and the candidate contains at least one concrete operational marker from a tiny closed set (`como`, `cuando`, `cuanto`, `quien`, `donde`) after raw-text inspection;
 - `possible_new_branch` may be proposed when `s1 < 0.45` or `d >= 0.40`;
-- `challenges_assumption` is **never inferred from lexical similarity alone** in v0.5. It may only appear in batch review when a candidate contains explicit challenge syntax (`y si`, `que pasa si`, `podria ser que`) and nearest-neighbor evidence is included. Even then it remains a review prompt.
+- `challenges_assumption` is **never inferred from lexical similarity alone** in v0.5. It may appear only when a candidate contains explicit challenge syntax (`y si`, `que pasa si`, `podria ser que`) and nearest-neighbor evidence is shown. Even then it remains a review prompt.
 
-These thresholds are calibration defaults and are versioned behavior. Tests must lock them down.
+These thresholds are calibration defaults and are versioned behavior. Tests lock them down.
 
 ## 11. Batch clustering
 
@@ -202,7 +205,7 @@ question_ids
 shared_tokens
 ```
 
-The cluster mechanism is designed to surface patterns like Q8/Q9/Q10/Q25 in the organizational-memory benchmark without calling the cluster a new master.
+The cluster mechanism surfaces **lexically connected** families only. It intentionally does not claim to reconstruct the human-reviewed Q8/Q9/Q10/Q25 organizational-forgetting family when the wording lacks sufficient overlap. That failure is preserved as calibration evidence for any future semantic-review layer.
 
 ## 12. CLI
 
@@ -246,7 +249,7 @@ JSON output must be sorted-key deterministic and end with a newline, matching ex
 
 v0.5 introduces no new SQLite tables.
 
-`novelty compare` and `novelty batch` are read-only. Tests must snapshot database contents before and after analysis and verify no mutation.
+`novelty compare` and `novelty batch` are read-only. Tests snapshot database contents before and after analysis and verify no mutation.
 
 No existing `QuestionNode`, `QuestionProfile`, `LearningObservation`, `QuestionRelation`, Context Pack, rubric or corpus contract changes.
 
@@ -278,7 +281,9 @@ Required regression expectations are intentionally modest because v0.5 is lexica
 
 - exact/near-exact restatements rank their known corpus neighbor highly;
 - the runtime exposes distinctive residual terms instead of falsely asserting equivalence;
-- the memory benchmark batch produces at least one multi-question possible cluster around forgetting/obsolescence terms;
+- the exact 25-question organizational-memory input remains preserved and loadable as a blind calibration corpus;
+- lexically overlapping batch questions may form `PossibleCluster` records deterministically;
+- the real Q8/Q9/Q10/Q25 semantic family is treated as a known lexical false negative rather than being rewritten or simplified until it passes;
 - no benchmark assertion may require the runtime to infer a human-reviewed semantic relation that lexical evidence cannot justify.
 
 ## 17. Acceptance criteria
@@ -292,5 +297,6 @@ v0.5 is acceptable when:
 5. compare and batch commands are read-only;
 6. no automatic lineage is created;
 7. benchmark regression tests pass without overstating semantic authority;
-8. README clearly distinguishes v0.5 retrieval evidence from human semantic review;
-9. CI is green on Python 3.11.
+8. the real blind-memory corpus is preserved unchanged and its lexical ceiling is documented;
+9. README clearly distinguishes v0.5 retrieval evidence from human semantic review;
+10. CI is green on Python 3.11.
