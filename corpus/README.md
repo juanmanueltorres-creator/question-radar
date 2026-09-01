@@ -83,3 +83,33 @@ v0.7 pre-registers only strong retrieval labels that fit its declared lexical sc
 - the earlier decision-under-uncertainty Q7 must remain a top-five `qv2-cal-013` hit.
 
 Q16 and Q24 are deliberately preserved as diagnostic controls rather than forced successes. Q16 gains weak `persona/personas` evidence once plural normalization is introduced, so forcing abstention would contradict the normalizer. Q24 still depends on the unimplemented verbal relation `entienden/entender`, so forcing it into the top five would require stemming or semantic assistance outside v0.7 scope.
+
+## Blind representations benchmark + Gold v1 — 2026-09-01
+
+`blind-representations-2026-09-01.jsonl` preserves the 23-question output of a separate blind chat about metrics, maps, categories, indicators, dashboards, rankings, and other simplified representations of complex realities.
+
+The raw benchmark is **evaluation input, not canonical retrieval corpus**. It was generated after v0.7 had been frozen and is not imported into v0.2 profiles or v0.4 lineage.
+
+`gold/blind-representations-2026-09-01-gold-v1.jsonl` freezes eight editorial review cases before any semantic retrieval layer is implemented. The labels mean that a prior question is useful to review before treating the candidate as new; they do **not** claim semantic equivalence, lineage, or duplication.
+
+Gold v1 deliberately mixes two judgment scopes:
+
+- `positive_only`: listed positive antecedents are judged useful, while every unlisted corpus entry remains **unjudged**, not negative;
+- `exhaustive`: the case has been reviewed as an explicit control. Q13 and Q22 are exhaustive expected-abstention controls.
+
+Because the positive cases are sparse rather than exhaustively judged, v0.8 reports Hit Rate@5, macro Recall@5, MRR, false abstentions, and abstention-control accuracy but withholds Precision@5. Treating every unjudged result as a negative would manufacture a precision number unsupported by the annotation protocol.
+
+The frozen pre-semantic v0.7 snapshot is:
+
+`baselines/blind-representations-2026-09-01-v0.7-baseline.json`
+
+At `k=5` over the 51-entry canonical evaluation snapshot it records:
+
+- Hit Rate@5: `0.5`;
+- macro Recall@5: `0.5`;
+- MRR: `0.5`;
+- false abstentions on positive cases: `2`;
+- abstention controls: `2/2` correct;
+- Precision@5: unavailable by design because Gold v1 contains `positive_only` judgments.
+
+That baseline is intended for later comparisons with candidate retrieval methods. A future semantic system must improve against the frozen gold without rewriting the gold after seeing its results.
