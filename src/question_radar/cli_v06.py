@@ -28,6 +28,30 @@ def _top_level_command(argv: list[str]) -> str | None:
     return None
 
 
+def _root_help_requested(argv: list[str]) -> bool:
+    remaining: list[str] = []
+    index = 0
+    while index < len(argv):
+        token = argv[index]
+        if token == "--db":
+            if index + 1 >= len(argv):
+                return False
+            index += 2
+            continue
+        if token.startswith("--db="):
+            index += 1
+            continue
+        remaining.append(token)
+        index += 1
+    return remaining in (["--help"], ["-h"])
+
+
+def _print_root_help() -> None:
+    legacy_cli.build_parser().print_help()
+    print("\nv0.6 additional command:")
+    print("  retrieval           retrieve prior questions from v0.2/v0.4 read-only corpus")
+
+
 def build_retrieval_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="question-radar",
@@ -78,6 +102,10 @@ def _handle_retrieval(args: argparse.Namespace) -> int:
 
 def main(argv: list[str] | None = None) -> int:
     args_list = list(sys.argv[1:] if argv is None else argv)
+    if _root_help_requested(args_list):
+        _print_root_help()
+        return 0
+
     if _top_level_command(args_list) != "retrieval":
         return legacy_cli.main(args_list)
 
