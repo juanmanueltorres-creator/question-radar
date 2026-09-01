@@ -85,12 +85,17 @@ def test_cli_benchmark_bad_file_fails_closed(tmp_path: Path, capsys) -> None:
 def test_cli_benchmark_can_override_evaluation_corpus_paths(tmp_path: Path, capsys) -> None:
     profile = tmp_path / "profiles.jsonl"
     lineage = tmp_path / "lineage.jsonl"
+    gold = tmp_path / "gold.jsonl"
     profile.write_text(
         '{"id":"qv2-cal-019","question":"¿Puede un sistema representar conocimiento?","rubric_version":"v0.2"}\n',
         encoding="utf-8",
     )
     lineage.write_text(
         '{"record_type":"node","id":"vault-2026-08-31-008","question":"¿Cuál es la brecha entre conocer profundamente un dominio y poder representarlo como un sistema ejecutable?","source_ref":"source.md"}\n',
+        encoding="utf-8",
+    )
+    gold.write_text(
+        '{"candidate_id":"representation-blind-2026-09-01-001","judgment_scope":"positive_only","expected_abstention":false,"judgments":[{"entry_id":"qv2-cal-019","source_version":"v0.2","relevance":"relevant"},{"entry_id":"vault-2026-08-31-008","source_version":"v0.4","relevance":"partially_relevant"}]}\n',
         encoding="utf-8",
     )
 
@@ -101,7 +106,7 @@ def test_cli_benchmark_can_override_evaluation_corpus_paths(tmp_path: Path, caps
             "--benchmark",
             BENCHMARK,
             "--gold",
-            GOLD,
+            str(gold),
             "--corpus",
             str(profile),
             "--corpus",
@@ -111,9 +116,12 @@ def test_cli_benchmark_can_override_evaluation_corpus_paths(tmp_path: Path, caps
         ]
     )
 
-    payload = json.loads(capsys.readouterr().out)
+    captured = capsys.readouterr()
+    payload = json.loads(captured.out)
     assert exit_code == 0
+    assert captured.err == ""
     assert payload["corpus_size"] == 2
+    assert len(payload["cases"]) == 1
 
 
 def test_installed_cli_exposes_benchmark_help_commands() -> None:
