@@ -6,8 +6,7 @@ We routinely store grades, assignments, correct answers, mistakes, tickets, sear
 
 Question Radar is a small, local-first Python system for turning questions into structured, inspectable data — **without turning them into a score of the person asking them**.
 
-**Current `main`: v0.3 · Question Profiles + Personal Learning Frontier**  
-**This PR proposes:** v0.4 · Question Lineage + deterministic Context Packs
+**Version:** v0.4 · Question Lineage + deterministic Context Packs
 
 **Stack:** Python 3.11+ · SQLite · CLI · JSONL/CSV · standard-library runtime only
 
@@ -48,16 +47,20 @@ assumptions + evidence needed
 stronger next question
      ↓
 optional learning observation
+     ↓
+explicit question lineage
+     ↓
+deterministic Context Pack
 ```
 
-On `main` (v0.3), it currently helps answer four practical questions:
+Question Radar helps answer practical questions such as:
 
 1. **What kind of question is this?**
 2. **Is it ready to answer, ready to investigate, or missing context?**
 3. **What assumptions or evidence still need to be surfaced?**
 4. **What stronger question could come next?**
-
-The proposed v0.4 extends that flow with explicit question lineage and deterministic Context Packs; those capabilities remain part of this PR until it is merged.
+5. **How does this question relate explicitly to earlier or later questions?**
+6. **What bounded, inspectable context is useful for the next investigation?**
 
 The system is deliberately transparent. There is no external LLM deciding what somebody knows, no learner ranking, and no hidden intelligence or mastery score.
 
@@ -65,15 +68,13 @@ The system is deliberately transparent. There is no external LLM deciding what s
 
 ## What this project demonstrates
 
-Current and proposed versioned capabilities include:
-
-- **Versioned data contracts** with backward compatibility across v0.1, v0.2, v0.3, and the proposed v0.4.
+- **Versioned data contracts** with backward compatibility across v0.1, v0.2, v0.3, and v0.4.
 - **Strict runtime validation** for required fields, closed vocabularies, numeric ranges, timestamps, and malformed input.
-- **Normalized SQLite storage** with separate tables for historical evaluations, typed profiles, learning observations, and proposed question lineage.
+- **Normalized SQLite storage** with separate tables for historical evaluations, typed profiles, learning observations, and question lineage.
 - **Ordered evidence relationships** preserved across database and JSONL round trips.
-- **Explicit directed question relations** with bounded, cycle-safe graph traversal in v0.4.
-- **Derived Context Packs** with deterministic Markdown and JSON output in v0.4.
-- **CLI design** with namespaced commands for scoring, profiling, learning-frontier, and proposed lineage workflows.
+- **Explicit directed question relations** with bounded, cycle-safe graph traversal.
+- **Derived Context Packs** with deterministic Markdown and JSON output.
+- **CLI design** with namespaced commands for scoring, profiling, learning-frontier, and lineage workflows.
 - **Explicit import/export boundaries** so local data stays local unless it is intentionally exported.
 - **Regression and end-to-end testing** across models, persistence, serialization, CLI behavior, calibration corpora, and historical compatibility.
 
@@ -150,7 +151,7 @@ Possible gap types include conceptual, terminology, procedural, connection, evid
 
 ---
 
-## Proposed v0.4: Question Lineage and Context Pack
+## v0.4: Question Lineage and Context Pack
 
 v0.4 makes the question itself a stable entity and connects questions with explicit, directed relations.
 
@@ -211,14 +212,14 @@ Question Radar
 │   ├── confidence
 │   └── ordered evidence question IDs
 │
-└── v0.4 Question Lineage (proposed in this PR)
+└── v0.4 Question Lineage
     ├── QuestionNode
     ├── QuestionRelation
     ├── bounded graph traversal
     └── derived Context Pack
 ```
 
-Persistence after the proposed v0.4 merge would include:
+Persistence in v0.4 includes:
 
 ```text
 evaluations
@@ -237,9 +238,9 @@ All versions can coexist in the same database without rewriting historical contr
 
 The repository is tested as a small software system, not only as a collection of scoring examples.
 
-**Latest verified CI suite for this PR: 252 tests passing on Python 3.11.**
+**Latest verified CI suite: 252 tests passing on Python 3.11.**
 
-That total contains **170 historical v0.1–v0.3 tests** plus **82 proposed v0.4 tests**.
+That total contains **170 historical v0.1–v0.3 tests** plus **82 v0.4 tests**.
 
 Coverage includes:
 
@@ -321,7 +322,7 @@ question-radar learning import corpus/learning-frontier-chat-2026-08-29-v0.3.jso
 question-radar learning export exports/learning.jsonl --format jsonl
 ```
 
-### v0.4 — Question Lineage (proposed)
+### v0.4 — Question Lineage
 
 ```bash
 question-radar lineage node add question.json
@@ -394,7 +395,7 @@ high
 
 See `examples/learning_observation.example.json` and `corpus/learning-frontier-chat-2026-08-29-v0.3.jsonl`.
 
-### v0.4 — question lineage (proposed)
+### v0.4 — question lineage
 
 `QuestionNode` stores exactly:
 
@@ -426,7 +427,7 @@ Current datasets include:
 - `anti-ia-calibration-v0.2.jsonl`
 - `chat-2026-08-29.jsonl`
 - `learning-frontier-chat-2026-08-29-v0.3.jsonl`
-- `question-lineage-v0.4.jsonl` (proposed in this PR)
+- `question-lineage-v0.4.jsonl`
 
 They are **calibration judgments, not truth labels and not scores of people**.
 
@@ -450,9 +451,9 @@ Question Radar is local-first by design:
 
 Question Radar intentionally stays small.
 
-Not included in the current version or proposed v0.4: web frontend, Supabase, authentication, embeddings, LangGraph, NetworkX, Neo4j, external LLM API calls, automatic chat scraping, automatic relation inference, multi-user analytics, or direct GeoPlatform / Anti IA runtime integration.
+Not included in v0.4: web frontend, Supabase, authentication, embeddings, LangGraph, NetworkX, Neo4j, external LLM API calls, automatic chat scraping, automatic relation inference, multi-user analytics, or direct GeoPlatform / Anti IA runtime integration.
 
-The proposed v0.4 extends the core data model to: **questions → profiles → evidence → revisable learning observations → explicit lineage → deterministic context for the next question**.
+The current core data model is: **questions → profiles → evidence → revisable learning observations → explicit lineage → deterministic context for the next question**.
 
 ---
 
