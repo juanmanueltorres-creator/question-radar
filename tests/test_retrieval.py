@@ -41,7 +41,7 @@ def test_ranking_tie_breaks_by_jaccard_then_id():
     assert [result.entry.id for result in pack.results] == ["a", "b"]
 
 
-def test_retrieval_exposes_token_contributions_and_residuals():
+def test_retrieval_exposes_token_contributions_residuals_and_coverage():
     corpus = (entry("a", "¿Cuál es el costo de actuar y de no actuar?"),)
 
     pack = retrieve_candidates(
@@ -55,6 +55,12 @@ def test_retrieval_exposes_token_contributions_and_residuals():
     assert {item.token for item in result.token_contributions} >= {"costo", "actuar"}
     assert "tiempo" in result.residual_query_tokens
     assert result.jaccard_score >= 0
+    assert result.matched_token_count == len(result.matched_query_tokens)
+    assert result.query_token_count > 0
+    assert result.query_coverage == round(
+        result.matched_token_count / result.query_token_count,
+        6,
+    )
 
 
 def test_contributions_are_sorted_by_score_then_token():
@@ -70,6 +76,51 @@ def test_contributions_are_sorted_by_score_then_token():
         contributions,
         key=lambda item: (-item.contribution, item.token),
     )
+
+
+def test_more_matched_query_tokens_outrank_one_rare_token():
+    corpus = (
+        entry("rare", "principal"),
+        entry("covered", "sistema decision"),
+    )
+
+    pack = retrieve_candidates("principal sistema decision", corpus, limit=2)
+
+    assert pack.results[0].entry.id == "covered"
+    assert pack.results[0].matched_token_count == 2
+    assert pack.results[1].matched_token_count <= 1
+
+
+def test_zero_lexical_evidence_abstains_instead_of_returning_arbitrary_rows():
+    corpus = (
+        entry("a", "costo actuar"),
+        entry("b", "memoria trazabilidad"),
+    )
+
+    pack = retrieve_candidates(
+        "recomendacion automatica modifica evaluarla",
+        corpus,
+        limit=5,
+    )
+
+    assert pack.retrieval_version == "v0.7"
+    assert pack.abstained is True
+    assert pack.abstention_reason == "no_lexical_evidence"
+    assert pack.results == ()
+    assert pack.review_required is True
+
+
+def test_nonzero_evidence_does_not_abstain():
+    corpus = (
+        entry("a", "costo actuar"),
+        entry("b", "memoria trazabilidad"),
+    )
+
+    pack = retrieve_candidates("costo decidir", corpus, limit=2)
+
+    assert pack.abstained is False
+    assert pack.abstention_reason is None
+    assert pack.results
 
 
 def test_cross_version_duplicate_ids_keep_independent_document_tokens():
@@ -90,10 +141,12 @@ def test_cross_version_duplicate_ids_keep_independent_document_tokens():
 def test_every_retrieval_pack_requires_human_review():
     pack = retrieve_candidates("¿Qué evidencia falta?", (), limit=5)
 
-    assert pack.retrieval_version == "v0.6"
+    assert pack.retrieval_version == "v0.7"
     assert pack.review_required is True
     assert pack.corpus_size == 0
     assert pack.results == ()
+    assert pack.abstained is True
+    assert pack.abstention_reason == "no_lexical_evidence"
 
 
 def test_blank_candidate_is_rejected():
