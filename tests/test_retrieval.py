@@ -72,6 +72,21 @@ def test_contributions_are_sorted_by_score_then_token():
     )
 
 
+def test_cross_version_duplicate_ids_keep_independent_document_tokens():
+    corpus = (
+        entry("same", "costo actuar", "v0.2", "profile"),
+        entry("same", "memoria trazabilidad", "v0.4", "lineage_node"),
+    )
+
+    pack = retrieve_candidates("costo actuar", corpus, limit=2)
+
+    assert pack.corpus_size == 2
+    assert pack.results[0].entry.source_version == "v0.2"
+    assert set(pack.results[0].matched_query_tokens) == {"actuar", "costo"}
+    assert pack.results[1].entry.source_version == "v0.4"
+    assert pack.results[1].matched_query_tokens == ()
+
+
 def test_every_retrieval_pack_requires_human_review():
     pack = retrieve_candidates("¿Qué evidencia falta?", (), limit=5)
 
