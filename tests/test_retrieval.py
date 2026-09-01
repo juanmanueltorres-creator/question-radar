@@ -88,7 +88,6 @@ def test_more_matched_query_tokens_outrank_one_rare_token():
 
     assert pack.results[0].entry.id == "covered"
     assert pack.results[0].matched_token_count == 2
-    assert pack.results[1].matched_token_count <= 1
 
 
 def test_zero_lexical_evidence_abstains_instead_of_returning_arbitrary_rows():
@@ -110,17 +109,19 @@ def test_zero_lexical_evidence_abstains_instead_of_returning_arbitrary_rows():
     assert pack.review_required is True
 
 
-def test_nonzero_evidence_does_not_abstain():
+def test_nonzero_evidence_returns_only_rows_with_evidence():
     corpus = (
-        entry("a", "costo actuar"),
-        entry("b", "memoria trazabilidad"),
+        entry("match", "costo actuar"),
+        entry("zero-a", "memoria trazabilidad"),
+        entry("zero-b", "territorio geologia"),
     )
 
-    pack = retrieve_candidates("costo decidir", corpus, limit=2)
+    pack = retrieve_candidates("costo decidir", corpus, limit=5)
 
     assert pack.abstained is False
     assert pack.abstention_reason is None
-    assert pack.results
+    assert [result.entry.id for result in pack.results] == ["match"]
+    assert all(result.matched_token_count > 0 for result in pack.results)
 
 
 def test_cross_version_duplicate_ids_keep_independent_document_tokens():
@@ -129,13 +130,14 @@ def test_cross_version_duplicate_ids_keep_independent_document_tokens():
         entry("same", "memoria trazabilidad", "v0.4", "lineage_node"),
     )
 
-    pack = retrieve_candidates("costo actuar", corpus, limit=2)
+    pack = retrieve_candidates("costo actuar memoria trazabilidad", corpus, limit=2)
 
     assert pack.corpus_size == 2
-    assert pack.results[0].entry.source_version == "v0.2"
-    assert set(pack.results[0].matched_query_tokens) == {"actuar", "costo"}
-    assert pack.results[1].entry.source_version == "v0.4"
-    assert pack.results[1].matched_query_tokens == ()
+    assert {result.entry.source_version for result in pack.results} == {"v0.2", "v0.4"}
+    v02 = next(result for result in pack.results if result.entry.source_version == "v0.2")
+    v04 = next(result for result in pack.results if result.entry.source_version == "v0.4")
+    assert set(v02.matched_query_tokens) == {"actuar", "costo"}
+    assert set(v04.matched_query_tokens) == {"memoria", "trazabilidad"}
 
 
 def test_every_retrieval_pack_requires_human_review():
