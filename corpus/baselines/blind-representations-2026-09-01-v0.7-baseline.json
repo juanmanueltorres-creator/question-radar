@@ -1,0 +1,255 @@
+{
+  "benchmark_name": "blind-representations-2026-09-01",
+  "cases": [
+    {
+      "abstained": true,
+      "abstention_reason": "no_lexical_evidence",
+      "candidate_id": "representation-blind-2026-09-01-001",
+      "correct_expected_abstention": null,
+      "expected_abstention": false,
+      "false_abstention": true,
+      "first_useful_rank": null,
+      "found_judgments": [],
+      "hit_at_k": false,
+      "judgment_scope": "positive_only",
+      "question": "¿Qué se pierde exactamente cuando una situación compleja se convierte en una métrica, un mapa, una categoría o un indicador?",
+      "recall_at_k": 0.0,
+      "reciprocal_rank": 0.0,
+      "retrieved_refs": [],
+      "useful_found_count": 0,
+      "useful_gold_count": 2
+    },
+    {
+      "abstained": true,
+      "abstention_reason": "no_lexical_evidence",
+      "candidate_id": "representation-blind-2026-09-01-010",
+      "correct_expected_abstention": null,
+      "expected_abstention": false,
+      "false_abstention": true,
+      "first_useful_rank": null,
+      "found_judgments": [],
+      "hit_at_k": false,
+      "judgment_scope": "positive_only",
+      "question": "¿Qué información tendría que faltar para que un dashboard aparentemente correcto conduzca sistemáticamente a decisiones equivocadas?",
+      "recall_at_k": 0.0,
+      "reciprocal_rank": 0.0,
+      "retrieved_refs": [],
+      "useful_found_count": 0,
+      "useful_gold_count": 1
+    },
+    {
+      "abstained": false,
+      "abstention_reason": null,
+      "candidate_id": "representation-blind-2026-09-01-011",
+      "correct_expected_abstention": null,
+      "expected_abstention": false,
+      "false_abstention": false,
+      "first_useful_rank": 1,
+      "found_judgments": [
+        {
+          "entry_id": "qv2-cal-020",
+          "rank": 1,
+          "relevance": "relevant",
+          "source_version": "v0.2"
+        },
+        {
+          "entry_id": "qv2-cal-021",
+          "rank": 2,
+          "relevance": "relevant",
+          "source_version": "v0.2"
+        }
+      ],
+      "hit_at_k": true,
+      "judgment_scope": "positive_only",
+      "question": "¿Quién decide qué variables aparecen en una representación y cuáles quedan afuera?",
+      "recall_at_k": 1.0,
+      "reciprocal_rank": 1.0,
+      "retrieved_refs": [
+        {
+          "entry_id": "qv2-cal-020",
+          "source_version": "v0.2"
+        },
+        {
+          "entry_id": "qv2-cal-021",
+          "source_version": "v0.2"
+        },
+        {
+          "entry_id": "vault-2026-08-31-013",
+          "source_version": "v0.4"
+        },
+        {
+          "entry_id": "vault-2026-08-31-002",
+          "source_version": "v0.4"
+        }
+      ],
+      "useful_found_count": 2,
+      "useful_gold_count": 2
+    },
+    {
+      "abstained": false,
+      "abstention_reason": null,
+      "candidate_id": "representation-blind-2026-09-01-012",
+      "correct_expected_abstention": null,
+      "expected_abstention": false,
+      "false_abstention": false,
+      "first_useful_rank": 1,
+      "found_judgments": [
+        {
+          "entry_id": "qv2-cal-022",
+          "rank": 1,
+          "relevance": "relevant",
+          "source_version": "v0.2"
+        }
+      ],
+      "hit_at_k": true,
+      "judgment_scope": "positive_only",
+      "question": "¿Qué intereses pueden quedar incorporados en una clasificación aunque sus reglas parezcan puramente técnicas?",
+      "recall_at_k": 1.0,
+      "reciprocal_rank": 1.0,
+      "retrieved_refs": [
+        {
+          "entry_id": "qv2-cal-022",
+          "source_version": "v0.2"
+        }
+      ],
+      "useful_found_count": 1,
+      "useful_gold_count": 1
+    },
+    {
+      "abstained": true,
+      "abstention_reason": "no_lexical_evidence",
+      "candidate_id": "representation-blind-2026-09-01-013",
+      "correct_expected_abstention": true,
+      "expected_abstention": true,
+      "false_abstention": false,
+      "first_useful_rank": null,
+      "found_judgments": [],
+      "hit_at_k": null,
+      "judgment_scope": "exhaustive",
+      "question": "¿Una categoría descubre una diferencia que ya existía o contribuye a crearla?",
+      "recall_at_k": null,
+      "reciprocal_rank": 0.0,
+      "retrieved_refs": [],
+      "useful_found_count": 0,
+      "useful_gold_count": 0
+    },
+    {
+      "abstained": false,
+      "abstention_reason": null,
+      "candidate_id": "representation-blind-2026-09-01-016",
+      "correct_expected_abstention": null,
+      "expected_abstention": false,
+      "false_abstention": false,
+      "first_useful_rank": 1,
+      "found_judgments": [
+        {
+          "entry_id": "chat-2026-08-29-010",
+          "rank": 1,
+          "relevance": "relevant",
+          "source_version": "v0.4"
+        }
+      ],
+      "hit_at_k": true,
+      "judgment_scope": "positive_only",
+      "question": "¿Cuándo tiene sentido comparar dos lugares, personas, organizaciones o períodos utilizando el mismo indicador?",
+      "recall_at_k": 1.0,
+      "reciprocal_rank": 1.0,
+      "retrieved_refs": [
+        {
+          "entry_id": "chat-2026-08-29-010",
+          "source_version": "v0.4"
+        },
+        {
+          "entry_id": "vault-2026-08-31-003",
+          "source_version": "v0.4"
+        },
+        {
+          "entry_id": "chat-2026-08-29-005",
+          "source_version": "v0.4"
+        },
+        {
+          "entry_id": "vault-2026-08-31-006",
+          "source_version": "v0.4"
+        }
+      ],
+      "useful_found_count": 1,
+      "useful_gold_count": 1
+    },
+    {
+      "abstained": false,
+      "abstention_reason": null,
+      "candidate_id": "representation-blind-2026-09-01-017",
+      "correct_expected_abstention": null,
+      "expected_abstention": false,
+      "false_abstention": false,
+      "first_useful_rank": null,
+      "found_judgments": [],
+      "hit_at_k": false,
+      "judgment_scope": "positive_only",
+      "question": "¿Qué tan rápido puede quedar obsoleta una representación mientras sigue pareciendo actual?",
+      "recall_at_k": 0.0,
+      "reciprocal_rank": 0.0,
+      "retrieved_refs": [
+        {
+          "entry_id": "qv2-cal-019",
+          "source_version": "v0.2"
+        },
+        {
+          "entry_id": "chat-2026-08-29-007",
+          "source_version": "v0.4"
+        },
+        {
+          "entry_id": "vault-2026-08-31-010",
+          "source_version": "v0.4"
+        },
+        {
+          "entry_id": "vault-2026-08-31-014",
+          "source_version": "v0.4"
+        },
+        {
+          "entry_id": "vault-2026-08-31-009",
+          "source_version": "v0.4"
+        }
+      ],
+      "useful_found_count": 0,
+      "useful_gold_count": 1
+    },
+    {
+      "abstained": true,
+      "abstention_reason": "no_lexical_evidence",
+      "candidate_id": "representation-blind-2026-09-01-022",
+      "correct_expected_abstention": true,
+      "expected_abstention": true,
+      "false_abstention": false,
+      "first_useful_rank": null,
+      "found_judgments": [],
+      "hit_at_k": null,
+      "judgment_scope": "exhaustive",
+      "question": "¿Cuándo agregar variables, resolución o detalle deja de aportar comprensión y empieza a dificultar la decisión?",
+      "recall_at_k": null,
+      "reciprocal_rank": 0.0,
+      "retrieved_refs": [],
+      "useful_found_count": 0,
+      "useful_gold_count": 0
+    }
+  ],
+  "corpus_size": 51,
+  "evaluation_boundary": "Gold judgments encode editorial review expectations, not semantic equivalence or lineage. Unjudged entries in positive-only cases are unknown, not negative.",
+  "evaluation_version": "v0.8",
+  "gold_version": "blind-representations-2026-09-01-gold-v1",
+  "k": 5,
+  "metrics": {
+    "abstention_accuracy": 1.0,
+    "abstention_control_count": 2,
+    "correct_abstentions": 2,
+    "false_abstentions": 2,
+    "false_non_abstentions": 0,
+    "hit_rate_at_k": 0.5,
+    "mrr": 0.5,
+    "positive_case_count": 6,
+    "precision_at_k": null,
+    "precision_unavailable_reason": "precision requires exhaustive relevance judgments; positive_only cases contain unjudged entries",
+    "recall_at_k": 0.5
+  },
+  "retrieval_version": "v0.7"
+}

@@ -1,0 +1,8 @@
+{"candidate_id":"representation-blind-2026-09-01-001","judgment_scope":"positive_only","expected_abstention":false,"judgments":[{"entry_id":"qv2-cal-019","source_version":"v0.2","relevance":"relevant"},{"entry_id":"vault-2026-08-31-008","source_version":"v0.4","relevance":"partially_relevant"}]}
+{"candidate_id":"representation-blind-2026-09-01-010","judgment_scope":"positive_only","expected_abstention":false,"judgments":[{"entry_id":"qv2-cal-015","source_version":"v0.2","relevance":"relevant"}]}
+{"candidate_id":"representation-blind-2026-09-01-011","judgment_scope":"positive_only","expected_abstention":false,"judgments":[{"entry_id":"qv2-cal-020","source_version":"v0.2","relevance":"relevant"},{"entry_id":"qv2-cal-021","source_version":"v0.2","relevance":"relevant"}]}
+{"candidate_id":"representation-blind-2026-09-01-012","judgment_scope":"positive_only","expected_abstention":false,"judgments":[{"entry_id":"qv2-cal-022","source_version":"v0.2","relevance":"relevant"}]}
+{"candidate_id":"representation-blind-2026-09-01-013","judgment_scope":"exhaustive","expected_abstention":true,"judgments":[]}
+{"candidate_id":"representation-blind-2026-09-01-016","judgment_scope":"positive_only","expected_abstention":false,"judgments":[{"entry_id":"chat-2026-08-29-010","source_version":"v0.4","relevance":"relevant"}]}
+{"candidate_id":"representation-blind-2026-09-01-017","judgment_scope":"positive_only","expected_abstention":false,"judgments":[{"entry_id":"chat-2026-08-29-006","source_version":"v0.4","relevance":"partially_relevant"}]}
+{"candidate_id":"representation-blind-2026-09-01-022","judgment_scope":"exhaustive","expected_abstention":true,"judgments":[]}
