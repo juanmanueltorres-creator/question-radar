@@ -113,3 +113,11 @@ At `k=5` over the 51-entry canonical evaluation snapshot it records:
 - Precision@5: unavailable by design because Gold v1 contains `positive_only` judgments.
 
 That baseline is intended for later comparisons with candidate retrieval methods. A future semantic system must improve against the frozen gold without rewriting the gold after seeing its results.
+
+## Future-building dogfood corpus — 2026-09-01
+
+`dogfood-future-building-2026-09-01.jsonl` preserves six explicit questions extracted from an external LinkedIn post about engineering maintenance, scientific inquiry, intelligence, emergent behavior, and imagining future forms of computation.
+
+This input is **dogfood, not blind evaluation and not canonical retrieval corpus**. The post had already been interpreted with knowledge of Question Radar before the file was added, so it must not be represented as a blind benchmark or post-hoc gold.
+
+The six raw questions are preserved without profile labels or lineage claims. They are useful for inspecting known boundaries of the v0.7 lexical layer, especially semantic misses, accidental lexical collisions, high-IDF weak terms, and legitimate abstention. Any future semantic comparison should evaluate these cases explicitly rather than silently importing them into the corpus being searched.
