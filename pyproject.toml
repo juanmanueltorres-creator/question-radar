@@ -18,7 +18,7 @@ dependencies = []
 dev = ["pytest>=8,<9"]
 
 [project.scripts]
-question-radar = "question_radar.cli_v06:main"
+question-radar = "question_radar.cli_v09:main"
 
 [tool.setuptools.packages.find]
 where = ["src"]
