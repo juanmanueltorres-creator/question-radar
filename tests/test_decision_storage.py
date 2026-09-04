@@ -233,3 +233,61 @@ def test_corrupt_multiple_roots_fail_closed(tmp_path):
             )
     with pytest.raises(RuntimeError, match="ambiguous decision history for q-a"):
         store.get_current("q-a")
+
+
+def test_schema_unique_supersedes_blocks_two_direct_successors(tmp_path):
+    store = prepared_store(tmp_path, node("q-a"))
+    store.insert(decision("dec-1", "q-a"))
+    store.initialize()
+    columns = (
+        "id",
+        "question_id",
+        "decision",
+        "rationale",
+        "goal_alignment",
+        "external_signal",
+        "testable_now",
+        "leverage",
+        "cost",
+        "confidence",
+        "next_test",
+        "resume_when",
+        "kill_condition",
+        "supersedes_decision_id",
+        "created_at",
+    )
+    first = decision(
+        "dec-2",
+        "q-a",
+        decision="RESEARCH",
+        supersedes_decision_id="dec-1",
+        created_at="2026-09-04T12:10:00-03:00",
+    )
+    second = decision(
+        "dec-3",
+        "q-a",
+        decision="RESEARCH",
+        supersedes_decision_id="dec-1",
+        created_at="2026-09-04T12:11:00-03:00",
+    )
+    with sqlite3.connect(store.db_path) as connection:
+        connection.execute("PRAGMA foreign_keys = ON")
+        payload = first.to_dict()
+        connection.execute(
+            "INSERT INTO investigation_decisions_v09 ("
+            + ", ".join(columns)
+            + ") VALUES ("
+            + ", ".join("?" for _ in columns)
+            + ")",
+            tuple(payload[column] for column in columns),
+        )
+        payload = second.to_dict()
+        with pytest.raises(sqlite3.IntegrityError):
+            connection.execute(
+                "INSERT INTO investigation_decisions_v09 ("
+                + ", ".join(columns)
+                + ") VALUES ("
+                + ", ".join("?" for _ in columns)
+                + ")",
+                tuple(payload[column] for column in columns),
+            )
