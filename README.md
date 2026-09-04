@@ -6,7 +6,7 @@ We routinely store grades, assignments, correct answers, mistakes, tickets, sear
 
 Question Radar is a small, local-first Python system for turning questions into structured, inspectable data — **without turning them into a score of the person asking them**.
 
-**Version:** v0.7 · Retrieval Calibration & Abstention + v0.6 Unified Candidate Retrieval
+**Version:** v0.9 · Investigation Decision Gate + v0.8 Gold Evaluation Harness + v0.7 Retrieval Calibration & Abstention
 
 **Stack:** Python 3.11+ · SQLite · CLI · JSONL/CSV · standard-library runtime only
 
@@ -29,7 +29,7 @@ Research gives that concern some grounding:
 - **OECD PISA 2022, Volume V** reports that only **47%** of students across OECD countries frequently ask questions when they do not understand mathematics material; among low performers, the average is below 40%. The OECD treats active questioning as an important learning strategy. [PISA 2022 Results — Learning strategies](https://www.oecd.org/en/publications/pisa-2022-results-volume-v_c2e44201-en/full-report/component-10.html)
 - **Au (2007)** synthesized 49 qualitative studies of high-stakes testing. The most common pattern was curriculum narrowing, fragmentation into test-related knowledge, and more teacher-centred pedagogy, while also noting important counterexamples depending on test design. [DOI: 10.3102/0013189X07306523](https://doi.org/10.3102/0013189X07306523)
 
-The point is not to reward people for asking *more* questions. It is to make the **purpose, formulation, evidence needs, evolution, and corpus-relative position of questions visible**.
+The point is not to reward people for asking *more* questions. It is to make the **purpose, formulation, evidence needs, evolution, corpus-relative position, and attention decision around questions visible**.
 
 ---
 
@@ -71,6 +71,14 @@ human review
 optional v0.5 novelty review against lineage
      ↓
 optional explicit v0.4 lineage decision
+
+explicit question identity
+     ↓
+operator investigation decision (v0.9)
+     ↓
+DO_NOW / RESEARCH / PARKED / KILLED
+     ↓
+append-only supersession when judgment changes
 ```
 
 Question Radar helps answer practical questions such as:
@@ -85,16 +93,17 @@ Question Radar helps answer practical questions such as:
 8. **What terms remain unexplained by the nearest corpus questions and may deserve human review as a new mechanism or branch?**
 9. **Which prior questions exist outside the lineage graph and should be reviewed before treating a candidate as new?**
 10. **When is there no lexical retrieval evidence at all, so the system should abstain rather than fabricate a shortlist?**
+11. **Should a preserved question consume attention now, bounded research, no current action, or explicit abandonment?**
 
-The system is deliberately transparent. There is no external LLM deciding what somebody knows, no learner ranking, no hidden intelligence or mastery score, and no automatic semantic relation written by v0.5, v0.6, or v0.7.
+The system is deliberately transparent. There is no external LLM deciding what somebody knows, no learner ranking, no hidden intelligence or mastery score, no automatic semantic relation written by v0.5, v0.6, or v0.7, and no automatic v0.9 prioritization decision.
 
 ---
 
 ## What this project demonstrates
 
-- **Versioned data contracts** with backward compatibility across v0.1, v0.2, v0.3, v0.4, v0.5, v0.6, and v0.7 derived outputs.
-- **Strict runtime validation** for required fields, closed vocabularies, numeric ranges, timestamps, and malformed input.
-- **Normalized SQLite storage** with separate tables for historical evaluations, typed profiles, learning observations, and question lineage.
+- **Versioned data contracts** with backward compatibility across v0.1 through v0.9.
+- **Strict runtime validation** for required fields, closed vocabularies, numeric ranges, booleans, timestamps, and malformed input.
+- **Normalized SQLite storage** with separate tables for historical evaluations, typed profiles, learning observations, question lineage, and v0.9 investigation decisions.
 - **Ordered evidence relationships** preserved across database and JSONL round trips.
 - **Explicit directed question relations** with bounded, cycle-safe graph traversal.
 - **Derived Context Packs** with deterministic Markdown and JSON output.
@@ -106,9 +115,14 @@ The system is deliberately transparent. There is no external LLM deciding what s
 - **Explicit abstention** when the lexical layer finds no supported overlap.
 - **Fail-closed SQLite reads** using `mode=ro`: analysis never creates a missing database or migrates a legacy one.
 - **Provisional lexical clustering** that remains an analysis artifact rather than a persisted claim.
-- **CLI isolation** through the retrieval facade while historical commands remain delegated unchanged.
+- **CLI isolation** through additive facades while historical commands remain delegated unchanged.
+- **Gold evaluation** against frozen editorial expectations without treating sparse unjudged entries as implicit negatives.
+- **Append-only investigation decisions** linked to existing v0.4 question identity.
+- **Explicit supersession history** so changed judgment does not rewrite earlier context.
+- **Advisory WIP visibility** when more than three investigations are marked `DO_NOW`, without automatic demotion or prioritization.
+- **Fail-closed v0.4 prerequisite checks** so v0.9 never initializes historical lineage tables merely to satisfy itself.
 - **Explicit import/export boundaries** so local data stays local unless it is intentionally exported.
-- **Regression and end-to-end testing** across models, persistence, serialization, CLI behavior, blind calibration inputs, and historical compatibility.
+- **Regression and end-to-end testing** across models, persistence, serialization, CLI behavior, blind calibration inputs, historical compatibility, and v0.9 dogfood.
 
 ---
 
@@ -330,6 +344,55 @@ v0.7 still adds **no embeddings, vector search, synonym expansion, general verb 
 
 ---
 
+## v0.8: Gold Evaluation Harness
+
+v0.8 adds a reproducible evaluation layer around the frozen v0.7 retrieval system without changing retrieval behavior, ranking, normalization, storage, or semantic interpretation.
+
+Editorial judgments distinguish `relevant`, `partially_relevant`, and `not_relevant`. Sparse positive-only judgments must never be interpreted as exhaustive negatives, so Precision@k is withheld unless the selected relevance set is exhaustive.
+
+The evaluator reports Hit Rate@k, Recall@k, MRR, false abstentions, abstention-control accuracy, and inspectable per-case retrieval evidence.
+
+The boundary is explicit:
+
+> **Gold judgments encode editorial review expectations, not semantic equivalence or lineage.**
+
+---
+
+## v0.9: Investigation Decision Gate
+
+v0.9 adds a persistent, auditable layer for an operational question that earlier versions intentionally did not answer:
+
+```text
+interesting question
+        ↓
+should this consume attention now?
+```
+
+The operator records exactly one of:
+
+```text
+DO_NOW
+RESEARCH
+PARKED
+KILLED
+```
+
+Each immutable decision stores rationale, explicit boolean gates (`goal_alignment`, `external_signal`, `testable_now`, `leverage`), qualitative `cost` and `confidence`, and state-specific next conditions.
+
+`DO_NOW` and `RESEARCH` require an explicit `next_test`. `PARKED` requires an explicit `resume_when` condition.
+
+Changed judgment is append-only: a new record supersedes the exact current leaf through `supersedes_decision_id`; historical rows are never rewritten.
+
+> **Decision gates are operator judgments. Question Radar records and validates them; it does not decide automatically what deserves attention.**
+
+`decision active` exposes current WIP and emits an advisory warning when `DO_NOW > 3`. It does not block the fourth decision, demote work, or choose what to park.
+
+The core distinction is:
+
+> **Preserving a question is not the same as committing attention to it.**
+
+---
+
 ## Architecture
 
 ```text
@@ -370,16 +433,26 @@ Question Radar
 │   ├── read-only v0.2 + v0.4 corpus snapshot
 │   └── BM25 + frozen v0.5 evidence
 │
-└── v0.7 Retrieval Calibration & Abstention
-    ├── retrieval-specific normalization
-    ├── narrow noun-focused morphology
-    ├── TokenContribution
-    ├── RetrievalEvidence + coverage
-    ├── RetrievalPack + abstention
-    └── mandatory human review boundary
+├── v0.7 Retrieval Calibration & Abstention
+│   ├── retrieval-specific normalization
+│   ├── narrow noun-focused morphology
+│   ├── TokenContribution
+│   ├── RetrievalEvidence + coverage
+│   ├── RetrievalPack + abstention
+│   └── mandatory human review boundary
+│
+├── v0.8 Gold Evaluation Harness
+│   └── frozen editorial retrieval expectations + deterministic metrics
+│
+└── v0.9 Investigation Decision Gate
+    ├── immutable InvestigationDecision
+    ├── append-only supersession chain
+    ├── derived current projection
+    ├── deterministic Markdown / JSON
+    └── advisory WIP visibility
 ```
 
-Persistence still includes only:
+Persistence includes:
 
 ```text
 evaluations
@@ -388,9 +461,10 @@ learning_observations_v03
 learning_observation_evidence_v03
 question_nodes_v04
 question_relations_v04
+investigation_decisions_v09
 ```
 
-v0.5, v0.6, and v0.7 add **no SQLite tables**. Novelty and retrieval packs are derived, read-only analysis artifacts. All versions can coexist without rewriting historical contracts.
+v0.5, v0.6, v0.7, and v0.8 add **no production SQLite tables**. Novelty, retrieval, and benchmark packs are derived analysis artifacts. v0.9 owns only `investigation_decisions_v09` and requires the canonical v0.4 question identity table to already exist.
 
 ---
 
@@ -398,7 +472,7 @@ v0.5, v0.6, and v0.7 add **no SQLite tables**. Novelty and retrieval packs are d
 
 The repository is tested as a small software system, not only as a collection of scoring examples.
 
-**Latest verified implementation CI suite: 316 tests passing on Python 3.11.**
+**Latest verified implementation CI suite: 393 tests passing on Python 3.11.**
 
 Coverage includes:
 
@@ -433,8 +507,16 @@ Coverage includes:
 - explicit zero-evidence abstention;
 - Blind #4 Q1 and Q14 retrieval regressions;
 - deterministic v0.7 Markdown/JSON coverage and abstention output;
+- v0.8 frozen gold evaluation and sparse-judgment boundaries;
+- immutable v0.9 decision validation and closed vocabularies;
+- fail-closed v0.4 prerequisite checks for decision persistence;
+- append-only, same-question, current-leaf-only supersession;
+- deterministic decision/history/active rendering;
+- advisory WIP warning with no automatic mutation;
+- installed v0.9 CLI plus historical CLI namespace compatibility;
+- sanitized three-case v0.9 dogfood;
 - JSONL/CSV serialization where supported;
-- compatibility between v0.1–v0.4 persistence and derived v0.5–v0.7 analysis.
+- compatibility between historical persistence and later derived/decision layers.
 
 Run the full suite:
 
@@ -543,6 +625,42 @@ question-radar --db /path/to/questions.sqlite3 retrieval compare \
 
 Retrieval reads whichever supported corpus tables already exist (`question_profiles_v02`, `question_nodes_v04`) through SQLite `mode=ro`. It does not initialize missing tables, mutate the database, create semantic relations, or promote masters. v0.7 may explicitly abstain when no lexical evidence exists.
 
+### v0.8 — gold evaluation
+
+```bash
+question-radar benchmark evaluate \
+  --benchmark corpus/blind-representations-2026-09-01.jsonl \
+  --gold corpus/gold/blind-representations-2026-09-01-gold-v1.jsonl \
+  --k 5 \
+  --format markdown
+```
+
+### v0.9 — investigation decisions
+
+The decision namespace requires an existing v0.4 `QuestionNode`.
+
+```bash
+question-radar decision record \
+  --question-id q-spqr-001 \
+  --decision PARKED \
+  --rationale "High learning value, no current production need." \
+  --goal-alignment false \
+  --external-signal true \
+  --testable-now false \
+  --leverage true \
+  --cost high \
+  --confidence medium \
+  --resume-when "A real PostgreSQL workload requires horizontal scaling."
+
+question-radar decision show q-spqr-001 --format markdown
+question-radar decision history q-spqr-001 --format json
+question-radar decision active --format markdown
+```
+
+If judgment changes later, create a new decision with `--supersedes <current-decision-id>`. The prior row remains unchanged.
+
+> Decision gates are operator judgments. Question Radar records and validates them; it does not decide automatically what deserves attention.
+
 ---
 
 ## Versioned contracts
@@ -588,6 +706,16 @@ v0.7 extends the derived retrieval contract with coverage and abstention. Its pr
 
 `RetrievalPack` always requires human review. BM25, coverage, and Jaccard are retrieval evidence, not probabilities or semantic-equivalence scores. An abstention is likewise a lexical-evidence statement, not proof of novelty.
 
+### v0.8 — gold evaluation
+
+v0.8 adds immutable editorial judgment/evaluation contracts around frozen retrieval inputs. Positive-only omissions remain unjudged, never implicit negatives.
+
+### v0.9 — `InvestigationDecision`
+
+Each v0.9 record stores immutable decision identity, existing v0.4 question identity, one closed decision state, rationale, four explicit operator gates, qualitative cost/confidence, state-specific next conditions, optional supersession, and a timezone-aware timestamp.
+
+Current state is derived from the append-only chain rather than stored in a mutable projection table.
+
 ---
 
 ## Public calibration data
@@ -605,8 +733,9 @@ Current datasets include:
 - `blind-memory-2026-09-01.jsonl` — external blind v0.5 calibration input, not canonical lineage
 - `blind-decision-uncertainty-2026-09-01.jsonl` — external blind v0.6 retrieval calibration input, not canonical lineage
 - `blind-system-trust-2026-09-01.jsonl` — external blind v0.7 retrieval calibration input, not canonical lineage
+- `blind-representations-2026-09-01.jsonl` + `gold/blind-representations-2026-09-01-gold-v1.jsonl` — frozen v0.8 benchmark/gold input
 
-The repository also keeps the software-domain blind experiment in `benchmarks/blind-test-2026-08-31-domain-software.md`.
+The repository also keeps the software-domain blind experiment in `benchmarks/blind-test-2026-08-31-domain-software.md` and sanitized v0.9 dogfood in `benchmarks/dogfood-investigation-decision-gate-2026-09-04.md`.
 
 These artifacts are **calibration evidence, not truth labels and not scores of people**.
 
@@ -624,7 +753,9 @@ Question Radar is local-first by design:
 - published corpora are calibration judgments or explicit benchmark inputs, not truth labels and not scores of people;
 - v0.4 performs no automatic historical migration or chat ingestion;
 - v0.5 novelty uses fail-closed read-only SQLite and creates no automatic semantic relations or promotions;
-- v0.6/v0.7 retrieval uses fail-closed read-only SQLite across v0.2/v0.4 and creates no unified persistence table, semantic relation, or promotion.
+- v0.6/v0.7 retrieval uses fail-closed read-only SQLite across v0.2/v0.4 and creates no unified persistence table, semantic relation, or promotion;
+- v0.8 evaluation creates no semantic relation or lineage write;
+- v0.9 creates only `investigation_decisions_v09`, requires pre-existing v0.4 question identity, and never changes a decision automatically.
 
 ---
 
@@ -632,9 +763,9 @@ Question Radar is local-first by design:
 
 Question Radar intentionally stays small.
 
-Not included in v0.7: web frontend, Supabase, authentication, embeddings, vector databases, LangGraph, NetworkX, Neo4j, external LLM API calls, synonym expansion, general language stemming, automatic chat scraping, automatic relation inference, automatic master promotion, automatic vault/master-library ingestion, multi-user analytics, or direct GeoPlatform / Anti IA runtime integration.
+Not included in v0.9: web frontend, Supabase, authentication, embeddings, vector databases, LangGraph, NetworkX, Neo4j, external LLM API calls, synonym expansion, general language stemming, automatic chat scraping, automatic relation inference, automatic master promotion, automatic vault/master-library ingestion, multi-user analytics, automatic prioritization, RICE/weighted priority scoring, agents, schedulers, automatic `PARKED` reactivation, background monitoring, or direct GeoPlatform / Opportunity OS / Andes Context OS runtime integration.
 
-The current core model is: **questions → profiles → evidence → revisable learning observations → explicit lineage → deterministic context**, plus **read-only calibrated retrieval and corpus-relative evidence layers that help a human inspect prior questions before changing the graph**.
+The current core model is: **questions → profiles → evidence → revisable learning observations → explicit lineage → deterministic context**, plus **read-only calibrated retrieval/evaluation layers and an explicit operator-controlled investigation decision layer**.
 
 ---
 
@@ -649,8 +780,9 @@ It is not:
 - an LLM judge of people;
 - an automatic semantic-equivalence oracle;
 - an automatic master-question curator;
+- an automatic prioritization engine;
 - automatic chat surveillance;
-- a replacement for teachers, tutors, researchers, or domain review.
+- a replacement for teachers, tutors, researchers, domain review, or operator judgment.
 
 It is a small experiment in treating **questions themselves as durable learning and research artifacts**.
 
