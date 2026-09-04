@@ -176,23 +176,24 @@ This preserves the original context instead of rewriting history.
 
 ## Supersession invariants
 
-For any non-null `supersedes_decision_id`:
+For each question, decision history is one linear chain.
 
-1. the referenced decision must already exist;
-2. the referenced decision must belong to the same `question_id`;
-3. a decision cannot supersede itself;
-4. one prior decision may be superseded by at most one direct successor;
-5. chains must remain acyclic;
-6. a new record may supersede only the current leaf decision for that question.
+1. The first decision for a question must have `supersedes_decision_id = null`.
+2. Once a question has a decision, every later decision must supersede the exact current leaf.
+3. The referenced decision must already exist.
+4. The referenced decision must belong to the same `question_id`.
+5. A decision cannot supersede itself.
+6. One prior decision may be superseded by at most one direct successor.
+7. Chains must remain acyclic.
 
-The final rule prevents branching history such as:
+These rules prevent both multiple roots and branching history such as:
 
 ```text
 A -> B
 A -> C
 ```
 
-If a chain is inconsistent or cannot produce exactly one current leaf, the read path must fail closed instead of choosing a state heuristically.
+If history is inconsistent or cannot produce exactly one current leaf, the read path must fail closed instead of choosing a state heuristically.
 
 ## Current-decision projection
 
@@ -241,7 +242,21 @@ CREATE TABLE investigation_decisions_v09 (
 
 The store must enable SQLite foreign keys.
 
-Validation that depends on another row — same-question supersession, current-leaf-only supersession, and cycle prevention — belongs in the storage/service layer rather than being approximated with database CHECK clauses.
+Validation that depends on another row — one-root-only history, same-question supersession, current-leaf-only supersession, and cycle prevention — belongs in the storage/service layer rather than being approximated with database CHECK clauses.
+
+## v0.4 prerequisite and fail-closed initialization
+
+v0.9 depends on persisted question identity from Question Lineage v0.4.
+
+Before creating or using `investigation_decisions_v09`, the decision store must verify that the configured SQLite database already contains the canonical `question_nodes_v04` table with the expected required columns.
+
+If the v0.4 lineage table is missing or structurally unsupported, the decision command fails closed.
+
+The v0.9 decision path must **not** call `QuestionLineageStore.initialize()` merely to make its prerequisite exist, because doing so would silently mutate an earlier domain layer.
+
+Once the v0.4 prerequisite has been verified, v0.9 may create its own `investigation_decisions_v09` table.
+
+An unknown `question_id` is rejected before decision insertion.
 
 ## Storage isolation
 
@@ -295,7 +310,13 @@ Conditional inputs:
 - `DO_NOW` and `RESEARCH` require `--next-test`;
 - `PARKED` requires `--resume-when`;
 - `--kill-condition` is optional;
-- `--supersedes` is optional only when no active decision already exists for the question.
+- `--supersedes` must be omitted for the first decision and is mandatory for every revision.
+
+Audit metadata:
+
+- `--id` is optional; when omitted, the CLI generates `dec-<uuid4-hex>` using Python's standard-library `uuid` module;
+- `--created-at` is optional; when omitted, the CLI uses the current UTC instant from `datetime.now(timezone.utc).isoformat()`;
+- tests and explicit imports may supply both values to make fixtures reproducible.
 
 If a question already has a current decision, `record` must reject a new independent decision and require the caller to supply the exact current decision id via `--supersedes`.
 
@@ -321,6 +342,8 @@ question-radar decision history <question_id>
 
 Returns every decision for the question in deterministic chronological order, preserving supersession ids and rationale.
 
+Ordering uses the existing timezone-aware timestamp normalization rule and then decision id as a deterministic tie-breaker.
+
 ### Active
 
 ```text
@@ -342,6 +365,8 @@ RESEARCH
 PARKED
 KILLED
 ```
+
+When no decisions exist, all aggregate counts are zero and the active list is empty.
 
 ## Rendering
 
@@ -435,25 +460,38 @@ priority != certainty
 
 A high-priority question may legitimately have low confidence, and a highly certain conclusion may legitimately remain parked.
 
+## Duplicate-id behavior
+
+Decision ids are immutable primary keys.
+
+Any attempt to insert an already-existing `InvestigationDecision.id` fails with an explicit duplicate-id error, regardless of whether the incoming payload matches the stored payload.
+
+v0.9 does not treat duplicate writes as idempotent success. Callers that need retry-safe behavior must retain the original successful result instead of replaying the same create operation.
+
+This strict rule keeps append-only semantics simple and avoids a second equality contract in v0.9.
+
 ## Error handling
 
 All invalid writes must fail closed before persistence where possible.
 
 Representative failures include:
 
+- missing or unsupported v0.4 lineage prerequisite;
 - unknown `question_id`;
 - unknown decision/cost/confidence value;
 - blank rationale;
 - missing `next_test` for `DO_NOW` or `RESEARCH`;
 - missing `resume_when` for `PARKED`;
+- supplying `--supersedes` for the first decision;
+- omitting `--supersedes` for a revision;
 - superseding a decision from another question;
 - superseding a non-current decision;
-- attempting to create a second independent current decision;
+- attempting to create a second independent root/current decision;
 - duplicate decision id;
 - malformed timestamp;
 - ambiguous decision chain.
 
-Exact retries of an already-existing decision id are not treated as implicit idempotent success unless the stored record is byte-for-byte/equivalently identical under the validated contract. The implementation plan may choose strict duplicate rejection or explicit idempotent equality, but behavior must be deterministic and tested.
+No validation failure grants permission to repair or rewrite historical rows automatically.
 
 ## Relationship to existing Question Radar layers
 
@@ -530,20 +568,23 @@ Implementation must follow TDD and add focused test modules for:
 
 1. `InvestigationDecision` contract validation and round-trip serialization;
 2. state-specific requirements (`next_test`, `resume_when`);
-3. SQLite schema creation and foreign-key enforcement;
-4. immutable insert behavior;
-5. same-question supersession validation;
-6. current-leaf-only supersession;
-7. acyclic history and ambiguity failure;
-8. deterministic current projection;
-9. deterministic chronological history;
-10. active-state filtering;
-11. WIP warning above three `DO_NOW` decisions;
-12. no automatic decision changes from WIP warnings;
-13. deterministic Markdown/JSON rendering;
-14. CLI record/show/history/active behavior;
-15. root-help discoverability;
-16. regression verification across the complete historical suite.
+3. v0.4 prerequisite verification without silent lineage initialization;
+4. SQLite v0.9 schema creation and foreign-key enforcement;
+5. immutable insert behavior and strict duplicate-id rejection;
+6. one-root-only history per question;
+7. same-question supersession validation;
+8. current-leaf-only supersession;
+9. acyclic history and ambiguity failure;
+10. deterministic current projection;
+11. deterministic chronological history;
+12. active-state filtering and zero-decision output;
+13. WIP warning above three `DO_NOW` decisions;
+14. no automatic decision changes from WIP warnings;
+15. deterministic Markdown/JSON rendering;
+16. CLI metadata generation plus injectable `--id` / `--created-at`;
+17. CLI record/show/history/active behavior;
+18. root-help discoverability;
+19. regression verification across the complete historical suite.
 
 Historical tests must remain unchanged unless a root-help assertion legitimately needs to include the new command while preserving all previous commands.
 
@@ -551,18 +592,21 @@ Historical tests must remain unchanged unless a root-help assertion legitimately
 
 1. `InvestigationDecision` is an immutable validated contract.
 2. Only `DO_NOW`, `RESEARCH`, `PARKED`, and `KILLED` are accepted decision states.
-3. Decisions reference existing v0.4 question nodes.
-4. Decisions are append-only; revision occurs only through explicit supersession.
-5. Supersession is same-question, current-leaf-only, unique, and acyclic.
-6. Current state is derived from immutable history, not stored separately.
-7. `DO_NOW` and `RESEARCH` require an explicit `next_test`.
-8. `PARKED` requires an explicit `resume_when` condition.
-9. Gates are stored explicitly but never determine the decision automatically.
-10. `decision active` exposes current WIP and warns when `DO_NOW > 3` without changing state.
-11. Markdown and JSON outputs are deterministic and authority-preserving.
-12. No external provider, LLM, scheduler, scoring engine, or runtime dependency is introduced.
-13. Existing v0.1-v0.8 behavior and tests remain green.
-14. The final implementation is dogfooded with at least three real investigations representing different states before the feature is considered complete.
+3. Decisions reference existing v0.4 question nodes and the decision path fails closed when the v0.4 prerequisite is absent.
+4. v0.9 initializes only its own table and never silently initializes or migrates historical layers.
+5. Decisions are append-only; revision occurs only through explicit supersession.
+6. Each question has exactly one root and at most one current leaf.
+7. Supersession is same-question, current-leaf-only, unique, and acyclic.
+8. Current state is derived from immutable history, not stored separately.
+9. `DO_NOW` and `RESEARCH` require an explicit `next_test`.
+10. `PARKED` requires an explicit `resume_when` condition.
+11. Gates are stored explicitly but never determine the decision automatically.
+12. Duplicate decision ids are rejected strictly.
+13. `decision active` exposes current WIP and warns when `DO_NOW > 3` without changing state.
+14. Markdown and JSON outputs are deterministic and authority-preserving.
+15. No external provider, LLM, scheduler, scoring engine, or runtime dependency is introduced.
+16. Existing v0.1-v0.8 behavior and tests remain green.
+17. The final implementation is dogfooded with at least three real investigations representing different states before the feature is considered complete.
 
 ## Initial dogfood cases
 
