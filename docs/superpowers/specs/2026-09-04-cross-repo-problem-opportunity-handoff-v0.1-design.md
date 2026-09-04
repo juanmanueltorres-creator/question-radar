@@ -261,10 +261,10 @@ For `TERRITORIAL_RESEARCH`, Contract 1 may seed a new Andes `ResearchIntent`.
 ## Exact mapping
 
 ```text
-question.raw               → ResearchIntent.question_raw
-question.canonical         → ResearchIntent.question_canonical
+question.raw                → ResearchIntent.question_raw
+question.canonical          → ResearchIntent.question_canonical
 source.question_profile_ref → ResearchIntent.question_profile_ref
-constraints[]              → ResearchIntent.constraints
+constraints[]               → ResearchIntent.constraints
 ```
 
 `ResearchIntent.goal` is operator-supplied from `investigation.next_test` or an explicitly refined research goal. The intake preview must display that choice before creating the intent.
@@ -775,6 +775,20 @@ Starting from one explicit public repository issue:
 4. `PublicContributionEntry` import is offered only if its existing contract is satisfied.
 5. Availability / claim state is preserved from evidence.
 6. PR or merge activity never becomes employment-interest evidence.
+
+# Self-Review
+
+The written design was checked for placeholders, contradictions, ambiguity and scope.
+
+Resolved findings:
+
+1. **Water activity mismatch:** Andes had `ResearchDomain.WATER` but no semantically valid activity for management decision support. V0.1 now specifies the single additive `decision_support` value rather than abusing an existing operational activity.
+2. **Freshness contradiction:** an offline JSON artifact cannot prove live source currentness without coupling repositories. The design now guarantees currentness only at export and exposes `AS_OF_EXPORT` downstream.
+3. **Direct GitHub ambiguity:** Contract 2 is now an explicit tagged union; `PUBLIC_CONTRIBUTION_CANDIDATE` cannot be confused with `ACTOR_NEED_HYPOTHESIS`.
+4. **TargetAccount coercion risk:** territorial actors remain references; V0.1 does not invent a generic CRM or force public agencies / operators into the employment-target model.
+5. **Forced-positive dogfood risk:** zero actionable candidates is an allowed real-research result. Sanitized fixtures prove Contract 2 independently rather than forcing research to manufacture an opportunity.
+
+No unresolved `TODO`, `TBD`, placeholder requirement, shared-runtime dependency, implicit route classifier or new orchestration subsystem remains in this specification.
 
 # Design Decision Summary
 
