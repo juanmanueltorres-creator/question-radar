@@ -1,0 +1,31 @@
+{
+  "contract": "question-research-handoff/v0.1",
+  "handoff_id": "qrh:fixture:public-github:001",
+  "created_at": "2026-09-04T21:05:00-03:00",
+  "source": {
+    "system": "question-radar",
+    "question_id": "question:fixture:public-github:001",
+    "question_profile_ref": null,
+    "decision_id": "decision:fixture:public-github:001",
+    "decision_fingerprint": "sha256:2222222222222222222222222222222222222222222222222222222222222222"
+  },
+  "question": {
+    "raw": "¿Qué problema público de software geoespacial puedo resolver en un repositorio externo donde exista una tarea explícita y disponible?",
+    "canonical": "¿Qué problema público de software geoespacial puedo resolver en un repositorio externo donde exista una tarea explícita y disponible?"
+  },
+  "investigation": {
+    "decision": "RESEARCH",
+    "rationale": "La pregunta justifica revisar evidencia pública de repositorios sin asumir que una tarea está disponible hasta verificar issue, estado y alcance.",
+    "next_test": "Encontrar una issue pública geoespacial con necesidad explícita, estado verificable y alcance acotable antes de crear cualquier candidato de contribución."
+  },
+  "routing": {
+    "kind": "PUBLIC_CONTRIBUTION_RESEARCH",
+    "destination": "opportunity-os"
+  },
+  "constraints": [
+    "route != opportunity",
+    "handoff != evidence",
+    "current_at_export != current_now",
+    "No inferir vacante, permiso de contacto, interés laboral ni disponibilidad de tarea desde el routing."
+  ]
+}
