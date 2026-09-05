@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import pytest
+
 
 def _valid_payload() -> dict[str, object]:
     return {
@@ -37,3 +39,13 @@ def test_valid_question_research_handoff_round_trips() -> None:
     handoff = QuestionResearchHandoff.from_dict(payload)
 
     assert handoff.to_dict() == payload
+
+
+def test_handoff_rejects_unknown_contract_version() -> None:
+    from question_radar.handoffs import QuestionResearchHandoff
+
+    payload = _valid_payload()
+    payload["contract"] = "question-research-handoff/v9.9"
+
+    with pytest.raises(ValueError, match="contract"):
+        QuestionResearchHandoff.from_dict(payload)
