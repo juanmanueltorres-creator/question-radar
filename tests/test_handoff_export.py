@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from dataclasses import replace
 import json
 
 import pytest
@@ -109,6 +110,13 @@ def test_builder_preserves_decision_identity_and_fingerprint() -> None:
     assert handoff.source.question_id == node.id
     assert handoff.source.decision_id == decision.id
     assert handoff.source.decision_fingerprint == decision_fingerprint(node, decision)
+
+
+def test_builder_rejects_decision_for_different_question() -> None:
+    decision = replace(_decision(), question_id="question:other:002")
+
+    with pytest.raises(ValueError, match="question_id"):
+        _build(decision=decision)
 
 
 def test_builder_preserves_constraints_in_order() -> None:
