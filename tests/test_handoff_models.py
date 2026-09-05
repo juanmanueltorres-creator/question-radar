@@ -1,5 +1,8 @@
 from __future__ import annotations
 
+import hashlib
+import json
+
 import pytest
 
 
@@ -62,3 +65,83 @@ def test_handoff_rejects_unknown_route() -> None:
 
     with pytest.raises(ValueError, match="routing"):
         QuestionResearchHandoff.from_dict(payload)
+
+
+@pytest.mark.parametrize("decision", ["PARKED", "KILLED"])
+def test_handoff_rejects_non_actionable_decisions(decision: str) -> None:
+    from question_radar.handoffs import QuestionResearchHandoff
+
+    payload = _valid_payload()
+    payload["investigation"] = {
+        "decision": decision,
+        "rationale": "Do not continue this investigation now.",
+        "next_test": "Reassess only after an explicit new signal.",
+    }
+
+    with pytest.raises(ValueError, match="decision"):
+        QuestionResearchHandoff.from_dict(payload)
+
+
+def test_handoff_requires_timezone_aware_created_at() -> None:
+    from question_radar.handoffs import QuestionResearchHandoff
+
+    payload = _valid_payload()
+    payload["created_at"] = "2026-09-04T20:30:00"
+
+    with pytest.raises(ValueError, match="created_at"):
+        QuestionResearchHandoff.from_dict(payload)
+
+
+def test_handoff_rejects_unknown_fields() -> None:
+    from question_radar.handoffs import QuestionResearchHandoff
+
+    payload = _valid_payload()
+    payload["buyer"] = "invented"
+
+    with pytest.raises(ValueError, match="unknown fields"):
+        QuestionResearchHandoff.from_dict(payload)
+
+
+def test_decision_fingerprint_is_deterministic() -> None:
+    from question_radar.decisions import InvestigationDecision
+    from question_radar.handoffs import decision_fingerprint
+    from question_radar.lineage import QuestionNode
+
+    node = QuestionNode.from_dict(
+        {
+            "id": "question:001",
+            "question": "What decision should we investigate?",
+            "source": "manual",
+            "source_ref": None,
+            "created_at": "2026-09-04T19:00:00-03:00",
+        }
+    )
+    decision = InvestigationDecision.from_dict(
+        {
+            "id": "decision:001",
+            "question_id": "question:001",
+            "decision": "RESEARCH",
+            "rationale": "The question is testable without assuming demand.",
+            "goal_alignment": True,
+            "external_signal": True,
+            "testable_now": True,
+            "leverage": True,
+            "cost": "low",
+            "confidence": "medium",
+            "next_test": "Identify the decision owner and evidence used today.",
+            "resume_when": None,
+            "kill_condition": None,
+            "supersedes_decision_id": None,
+            "created_at": "2026-09-04T20:00:00-03:00",
+        }
+    )
+    canonical = json.dumps(
+        {"question": node.to_dict(), "decision": decision.to_dict()},
+        ensure_ascii=False,
+        sort_keys=True,
+        separators=(",", ":"),
+    ).encode("utf-8")
+    expected = "sha256:" + hashlib.sha256(canonical).hexdigest()
+
+    assert decision_fingerprint(node, decision) == expected
+    assert decision_fingerprint(node, decision) == expected
