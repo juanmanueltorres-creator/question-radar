@@ -1,0 +1,31 @@
+{
+  "contract": "question-research-handoff/v0.1",
+  "handoff_id": "qrh:fixture:water-san-juan:001",
+  "created_at": "2026-09-04T21:00:00-03:00",
+  "source": {
+    "system": "question-radar",
+    "question_id": "question:fixture:water-san-juan:001",
+    "question_profile_ref": null,
+    "decision_id": "decision:fixture:water-san-juan:001",
+    "decision_fingerprint": "sha256:1111111111111111111111111111111111111111111111111111111111111111"
+  },
+  "question": {
+    "raw": "¿Qué decisión recurrente relacionada con agua en San Juan podría mejorar utilizando evidencia territorial o satelital, quién toma hoy esa decisión y qué información le falta?",
+    "canonical": "¿Qué decisión recurrente relacionada con agua en San Juan podría mejorar utilizando evidencia territorial o satelital, quién toma hoy esa decisión y qué información le falta?"
+  },
+  "investigation": {
+    "decision": "RESEARCH",
+    "rationale": "La pregunta justifica una investigación acotada sobre una decisión recurrente y su evidencia faltante; el handoff no confirma actor, demanda ni oportunidad.",
+    "next_test": "Definir un territorio explícito de San Juan y localizar una fuente pública trazable que documente una decisión recurrente relacionada con agua."
+  },
+  "routing": {
+    "kind": "TERRITORIAL_RESEARCH",
+    "destination": "andes-context-os"
+  },
+  "constraints": [
+    "route != opportunity",
+    "handoff != evidence",
+    "current_at_export != current_now",
+    "No inferir autoridad del actor, comprador, permiso de contacto, contratación ni demanda desde el routing."
+  ]
+}
