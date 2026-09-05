@@ -22,6 +22,8 @@ def build_question_research_handoff(
     canonical_question: str | None = None,
     constraints: tuple[str, ...] = (),
 ) -> QuestionResearchHandoff:
+    if decision.question_id != node.id:
+        raise ValueError("decision.question_id must match node.id")
     if route not in DESTINATION_BY_ROUTE:
         raise ValueError("route is unsupported")
 
