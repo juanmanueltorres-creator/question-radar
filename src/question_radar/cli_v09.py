@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import argparse
 from datetime import datetime, timezone
+from pathlib import Path
 import sys
 import uuid
 
@@ -21,6 +22,11 @@ from question_radar.decisions import (
     DECISION_STATES,
     InvestigationDecision,
 )
+from question_radar.handoff_export import (
+    build_question_research_handoff,
+    render_question_research_handoff_json,
+)
+from question_radar.handoffs import DESTINATION_BY_ROUTE
 
 
 def _parse_bool(value: str) -> bool:
@@ -34,6 +40,10 @@ def _parse_bool(value: str) -> bool:
 
 def _new_decision_id() -> str:
     return f"dec-{uuid.uuid4().hex}"
+
+
+def _new_handoff_id() -> str:
+    return f"qrh:{uuid.uuid4().hex}"
 
 
 def _now_iso() -> str:
@@ -123,6 +133,22 @@ def build_decision_parser() -> argparse.ArgumentParser:
         choices=("markdown", "json"),
         default="markdown",
     )
+
+    handoff = commands.add_parser(
+        "handoff",
+        help="export the current actionable decision as a cross-repo handoff",
+    )
+    handoff.add_argument("question_id")
+    handoff.add_argument(
+        "--route",
+        choices=tuple(DESTINATION_BY_ROUTE),
+        required=True,
+    )
+    handoff.add_argument("--out", required=True)
+    handoff.add_argument("--canonical-question")
+    handoff.add_argument("--constraint", action="append", default=[])
+    handoff.add_argument("--handoff-id")
+    handoff.add_argument("--created-at")
     return parser
 
 
@@ -158,9 +184,40 @@ def _handle_record(args: argparse.Namespace) -> int:
     return 0
 
 
+def _handle_handoff(args: argparse.Namespace) -> int:
+    store = InvestigationDecisionStore(args.db)
+    node = store.get_question_node(args.question_id)
+    if node is None:
+        raise ValueError(f"question node not found: {args.question_id}")
+    current = store.get_current(args.question_id)
+    if current is None:
+        raise ValueError(
+            f"no investigation decision recorded for: {args.question_id}"
+        )
+
+    handoff = build_question_research_handoff(
+        node,
+        current,
+        route=args.route,
+        handoff_id=args.handoff_id or _new_handoff_id(),
+        created_at=args.created_at or _now_iso(),
+        canonical_question=args.canonical_question,
+        constraints=tuple(args.constraint),
+    )
+    rendered = render_question_research_handoff_json(handoff)
+
+    output_path = Path(args.out)
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    output_path.write_text(rendered, encoding="utf-8")
+    print(f"wrote {output_path}")
+    return 0
+
+
 def _handle_decision(args: argparse.Namespace) -> int:
     if args.decision_command == "record":
         return _handle_record(args)
+    if args.decision_command == "handoff":
+        return _handle_handoff(args)
 
     store = InvestigationDecisionStore(args.db)
     if args.decision_command == "show":
