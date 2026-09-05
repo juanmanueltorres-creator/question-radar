@@ -49,3 +49,16 @@ def test_handoff_rejects_unknown_contract_version() -> None:
 
     with pytest.raises(ValueError, match="contract"):
         QuestionResearchHandoff.from_dict(payload)
+
+
+def test_handoff_rejects_unknown_route() -> None:
+    from question_radar.handoffs import QuestionResearchHandoff
+
+    payload = _valid_payload()
+    payload["routing"] = {
+        "kind": "AUTO_RESEARCH",
+        "destination": "andes-context-os",
+    }
+
+    with pytest.raises(ValueError, match="routing"):
+        QuestionResearchHandoff.from_dict(payload)
