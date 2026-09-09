@@ -146,7 +146,7 @@ derive candidate primitives from countries A..N-1
 
 ### Stop condition
 
-Do not promote this investigation into a multipountry product architecture or new GeoPlatform module if:
+Do not promote this investigation into a multi-country product architecture or new GeoPlatform module if:
 
 - the source cases cannot support the proposed fields without substantial inference;
 - categories require excessive reinterpretation;
