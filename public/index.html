@@ -1,0 +1,159 @@
+<!doctype html>
+<html lang="es-AR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#0e1017">
+  <title>Question Radar — Reformulá lo que preguntás</title>
+  <style>
+    :root{color-scheme:dark;--bg:#0e1017;--fg:#e9eaf0;--sub:#9299aa;--line:#303441;--ink:#161925;--a:#d9ff6d;--b:#c4a9ff;--c:#65dfcf}
+    *{box-sizing:border-box}html{scroll-behavior:smooth}body{margin:0;min-height:100vh;background:var(--bg);color:var(--fg);font:15px/1.5 system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
+    body:before{content:"";position:fixed;inset:0;pointer-events:none;z-index:-1;background:radial-gradient(circle at 85% 9%,#af66ff21,transparent 32%),radial-gradient(circle at 3% 68%,#30d7c51a,transparent 28%),repeating-linear-gradient(0deg,transparent 0px,transparent 59px,#ffffff05 60px)}
+    .shell{width:min(1090px,calc(100% - 44px));margin:auto;padding:27px 0 75px}
+    header{display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid var(--line);padding-bottom:22px;gap:12px}
+    .brand{display:flex;align-items:center;gap:12px;letter-spacing:.13em;font:700 13px/1.1 ui-monospace,SFMono-Regular,Consolas,monospace}
+    .icon{display:grid;place-items:center;width:31px;height:31px;border-radius:50%;border:1px solid var(--a);color:var(--a);font-size:19px}
+    .flag{color:var(--sub);font:11px ui-monospace,monospace}
+    h1{font-size:clamp(48px,8.6vw,111px);letter-spacing:-.075em;line-height:.99;font-weight:640;margin:54px 0 22px;max-width:960px}
+    h1 em{font-style:normal;color:var(--a)}.lead{font-size:clamp(16px,2vw,20px);color:#bdc2d0;margin:0 0 40px;max-width:550px}
+    .grid{display:grid;grid-template-columns:minmax(0,1.32fr) minmax(270px,.68fr);gap:20px}
+    .panel{border:1px solid var(--line);border-radius:16px;padding:25px;background:#151720ed;min-width:0}
+    .eyebrow{font:11px ui-monospace,Consolas,monospace;letter-spacing:.14em;text-transform:uppercase;color:var(--sub);margin-bottom:19px}
+    textarea{background:transparent;color:var(--fg);width:100%;resize:vertical;min-height:155px;border:0;outline:none;font:clamp(19px,2.2vw,26px)/1.3 inherit;font-family:inherit;font-size:clamp(20px,2.4vw,28px);letter-spacing:-.025em}
+    textarea::placeholder{color:#747b8f}textarea:focus-visible{outline:1px solid var(--c);border-radius:4px}
+    .actions{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-top:18px;border-top:1px solid var(--line);padding-top:18px}
+    button{font:600 12px/1.3 ui-monospace,monospace;cursor:pointer;border:1px solid var(--line);border-radius:100px;background:#222532;color:var(--fg);padding:12px 18px;transition:background .18s,border-color .18s}
+    button:hover{background:#343848;border-color:#646b80}button:focus-visible{outline:2px solid var(--c);outline-offset:3px}
+    button.primary{background:var(--a);color:#111411;border-color:var(--a)}button.primary:hover{background:#eeffaf}button:disabled{opacity:.5;cursor:progress}
+    .meta{font:11px ui-monospace,monospace;color:var(--sub)}
+    .examples{display:flex;flex-wrap:wrap;gap:9px;margin-top:22px}.examples button{font:12px/1.35 inherit;text-align:left;border-radius:9px;max-width:100%;padding:10px 12px}
+    .side-title{font-size:23px;letter-spacing:-.04em;margin:0 0 12px}
+    .side p{color:var(--sub);margin:0 0 18px}.diagram{display:grid;gap:9px;margin-top:30px}
+    .step{display:flex;gap:12px;align-items:center;font:12px ui-monospace,monospace;color:#b7bcc9}
+    .dot{width:8px;height:8px;border-radius:50%;background:var(--c);box-shadow:0 0 19px #65dfcf66}.step:nth-child(2) .dot{background:var(--b)}.step:nth-child(3) .dot{background:var(--a)}
+    .result{margin-top:22px;display:none}.result.show{display:block}.result-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+    .result-card{border:1px solid var(--line);padding:20px;border-radius:12px;background:#191b27}
+    .result-card.wide{grid-column:1/-1;background:#20281c;border-color:#749146}
+    .result-card h2{margin:0 0 9px;color:var(--sub);font:11px ui-monospace,monospace;text-transform:uppercase;letter-spacing:.1em}
+    .result-card p{margin:0;color:var(--fg);overflow-wrap:anywhere}.result-card.wide p{font-size:clamp(20px,3vw,31px);letter-spacing:-.04em;line-height:1.27}
+    .result-tools{display:flex;gap:8px;margin-top:16px}
+    .results-note{font-size:13px;color:var(--sub);margin:18px 0 0}.match{padding:11px 0;border-top:1px solid var(--line);color:#bec4d0;font-size:13px}
+    .match small{display:block;color:var(--sub);font:10px ui-monospace,monospace;margin-top:5px}
+    footer{display:flex;justify-content:space-between;gap:10px;margin-top:52px;color:#7f8698;font:11px ui-monospace,monospace}
+    a{color:var(--c);text-decoration:none}a:hover{text-decoration:underline}
+    @media(max-width:770px){.grid,.result-grid{grid-template-columns:1fr}.result-card.wide{grid-column:auto}.shell{width:min(100% - 28px,660px)}.panel{padding:19px}header{padding-bottom:16px}h1{margin-top:48px}.side{display:none}footer{flex-direction:column;gap:5px}}
+    @media(prefers-reduced-motion:reduce){*{scroll-behavior:auto!important;transition:none!important}}
+  </style>
+</head>
+<body>
+  <main class="shell">
+    <header>
+      <div class="brand"><span class="icon" aria-hidden="true">?</span> QUESTION RADAR <span class="flag">/ LAB 01</span></div>
+      <span class="flag">FORMULAR · EXAMINAR · REFORMULAR</span>
+    </header>
+    <h1>Una pregunta<br><em>cambia todo.</em></h1>
+    <p class="lead">No busques una respuesta rápida. Investigá cómo formular una pregunta mejor.</p>
+    <section class="grid" aria-label="Laboratorio de preguntas">
+      <div class="panel">
+        <div class="eyebrow">01 / Tu pregunta</div>
+        <form id="form">
+          <label for="question" class="sr-label" style="position:absolute;left:-9999px">Ingresá tu pregunta</label>
+          <textarea id="question" maxlength="700" required minlength="8" placeholder="¿Por qué aprendemos a responder, pero no a preguntar?"></textarea>
+          <div class="actions">
+            <span class="meta" id="count">0 / 700</span>
+            <button type="submit" class="primary" id="submit">MEJORAR PREGUNTA ↗</button>
+          </div>
+        </form>
+        <div class="examples" aria-label="Preguntas para explorar">
+          <button data-question="¿Por qué aprendemos a responder, pero no a preguntar?">Educación ↗</button>
+          <button data-question="¿Cómo sabemos que lo que creemos saber es verdadero?">Conocimiento ↗</button>
+          <button data-question="¿Por qué dos personas observan lo mismo y llegan a conclusiones distintas?">Percepción ↗</button>
+        </div>
+      </div>
+      <aside class="panel side">
+        <div class="eyebrow">02 / Método</div>
+        <h2 class="side-title">Pensar la pregunta.</h2>
+        <p>Question Radar busca antecedentes. Gemini ayuda a reformular. Vos decidís si la nueva pregunta conserva lo que querías saber.</p>
+        <div class="diagram">
+          <div class="step"><span class="dot"></span> PREGUNTA ORIGINAL</div>
+          <div class="step"><span class="dot"></span> SUPUESTOS + CONTEXTO</div>
+          <div class="step"><span class="dot"></span> PREGUNTA REFORMULADA</div>
+        </div>
+      </aside>
+    </section>
+    <section class="result" id="result" aria-live="polite">
+      <div class="eyebrow" id="status">03 / Exploración</div>
+      <div class="result-grid" id="cards"></div>
+      <div class="panel" style="margin-top:16px" id="related" hidden>
+        <div class="eyebrow">Del archivo de Question Radar</div>
+        <div id="matches"></div>
+        <p class="results-note">Coincidencias léxicas del corpus público: no implican equivalencia ni relación comprobada.</p>
+      </div>
+    </section>
+    <footer>
+      <span>QUESTION RADAR · <a href="https://github.com/juanmanueltorres-creator/question-radar" rel="noopener noreferrer" target="_blank">OPEN SOURCE ↗</a></span>
+      <span>Sin cuentas · Sin guardar tus preguntas en el servidor</span>
+    </footer>
+  </main>
+  <script>
+    const input = document.querySelector('#question');
+    const count = document.querySelector('#count');
+    const form = document.querySelector('#form');
+    const button = document.querySelector('#submit');
+    const result = document.querySelector('#result');
+    const cards = document.querySelector('#cards');
+    const status = document.querySelector('#status');
+    const related = document.querySelector('#related');
+    const matches = document.querySelector('#matches');
+    let lastQuestion = '';
+    const text = (tag, value, className='') => {
+      const el = document.createElement(tag); el.textContent = value || '—';
+      if (className) el.className = className; return el;
+    };
+    function card(label, content, wide=false, copy=false) {
+      const box = document.createElement('article'); box.className='result-card'+(wide?' wide':'');
+      box.append(text('h2',label),text('p',content));
+      if(copy && content) {
+        const tools=document.createElement('div');tools.className='result-tools';
+        const b=text('button','COPIAR ↗');
+        b.addEventListener('click',async()=>{try{await navigator.clipboard.writeText(content);b.textContent='COPIADA ✓'}catch{b.textContent='NO SE PUDO COPIAR'}});
+        const rerun=text('button','VOLVER A MEJORAR ↗');rerun.addEventListener('click',()=>{input.value=content;input.dispatchEvent(new Event('input'));window.scrollTo({top:0,behavior:'smooth'});input.focus()});
+        tools.append(b,rerun);box.append(tools);
+      }
+      cards.append(box);
+    }
+    input.addEventListener('input',()=>{count.textContent=input.value.length+' / 700'});
+    document.querySelectorAll('[data-question]').forEach(el=>el.addEventListener('click',()=>{input.value=el.dataset.question;input.dispatchEvent(new Event('input'));input.focus()}));
+    form.addEventListener('submit',async(ev)=>{
+      ev.preventDefault();
+      const question=input.value.trim();if(question.length<8)return;
+      button.disabled=true;button.textContent='EXAMINANDO…';
+      result.classList.add('show');status.textContent='03 / Analizando…';cards.replaceChildren();related.hidden=true;
+      try{
+        const response=await fetch('/api/question',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({question,history:lastQuestion?[lastQuestion]:[]})});
+        const payload=await response.json();if(!response.ok)throw Error(payload.error||'No se pudo analizar la pregunta.');
+        lastQuestion=question;cards.replaceChildren();
+        if(payload.analysis){
+          const a=payload.analysis;
+          card('Pregunta reformulada',a.reformulada,true,true);
+          card('Supuesto por revisar',a.supuesto);
+          card('Diagnóstico',a.diagnostico);
+          card('Otra perspectiva',a.alternativa);
+          card('Próxima pregunta',a.pregunta_siguiente);
+          card('¿Por qué mejora?',a.razon);
+          status.textContent='03 / Reformulación sugerida · revisala vos';
+        } else {
+          card('Motor disponible / Gemini pendiente',payload.notice||'Falta configurar el modelo.',true);
+          status.textContent='03 / Análisis de archivo';
+        }
+        const hits=payload.retrieval?.results||[];
+        if(hits.length) {
+          related.hidden=false;matches.replaceChildren();
+          hits.forEach(hit=>{const row=text('div',hit.question,'match');row.append(text('small','CORPUS / '+hit.id));matches.append(row)});
+        }
+      }catch(err){cards.replaceChildren();card('No se pudo procesar',err.message||'Error desconocido',true);status.textContent='03 / Error';}
+      finally{button.disabled=false;button.textContent='MEJORAR PREGUNTA ↗';result.scrollIntoView({behavior:'smooth',block:'start'});}
+    });
+  </script>
+</body>
+</html>
