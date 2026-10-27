@@ -41,9 +41,89 @@
     a{color:var(--c);text-decoration:none}a:hover{text-decoration:underline}
     @media(max-width:770px){.grid,.result-grid{grid-template-columns:1fr}.result-card.wide{grid-column:auto}.shell{width:min(100% - 28px,660px)}.panel{padding:19px}header{padding-bottom:16px}h1{margin-top:48px}.side{display:none}footer{flex-direction:column;gap:5px}}
     @media(prefers-reduced-motion:reduce){*{scroll-behavior:auto!important;transition:none!important}}
+
+    /* Atmosphere V1 — visual-only. Keep form, output, and API behavior untouched. */
+    body{background:#090b19;overflow-x:hidden}
+    .qr-world{position:fixed;inset:0;z-index:0;overflow:hidden;pointer-events:none;isolation:isolate;background:#070a17}
+    .qr-world::after{content:"";position:absolute;inset:0;z-index:3;
+      background:linear-gradient(90deg,rgba(5,7,18,.63),rgba(6,8,19,.13) 49%,rgba(5,7,18,.35)),
+                 linear-gradient(0deg,rgba(7,9,20,.72),transparent 24%,transparent 72%,rgba(7,9,20,.35))}
+    .qr-atlas{position:absolute;inset:-4%;background:url('/visuals/question-atlas.svg') center top/cover no-repeat;
+      opacity:.68;transform:scale(1.06);animation:qrAtlasDrift 44s ease-in-out infinite alternate}
+    .qr-bloom{position:absolute;border-radius:50%;mix-blend-mode:screen;opacity:.55;filter:blur(32px);
+      animation:qrPlasma 23s ease-in-out infinite alternate}
+    .qr-bloom--rose{width:min(67vw,820px);height:min(58vw,700px);right:-15vw;top:-19vh;
+      background:radial-gradient(ellipse,#dc30b55c 0%,#8d3aea35 33%,#1a3ee51a 52%,transparent 70%)}
+    .qr-bloom--cyan{width:min(69vw,760px);height:min(56vw,680px);left:-21vw;bottom:-33vh;
+      background:radial-gradient(ellipse,#25c9f04b 0%,#3c56d928 38%,transparent 71%);animation-delay:-12s}
+    .qr-orbit{position:absolute;width:clamp(290px,36vw,580px);aspect-ratio:1;border:1px solid #dbb1ff49;
+      border-radius:50%;right:-11vw;top:15vh;transform:rotate(-28deg) scaleX(.78);
+      animation:qrOrbit 70s linear infinite}
+    .qr-orbit::after{content:"";position:absolute;width:10px;height:10px;left:14%;top:14%;
+      border-radius:50%;background:#e7ff68;box-shadow:0 0 20px #eeff7b99}
+    .qr-orbit--small{width:clamp(220px,27vw,430px);top:auto;bottom:-12vh;right:auto;left:-10vw;
+      border-color:#9d82ff57;animation-direction:reverse;animation-duration:90s}
+    .qr-orbit--small::after{background:#ee5bcf;box-shadow:0 0 20px #ff60e688;left:80%;top:80%}
+    .qr-film{position:absolute;right:5vw;bottom:7vh;width:min(21vw,270px);height:min(18vw,240px);
+      background:repeating-linear-gradient(0deg,transparent 0 12px,#dcaeff17 12px 13px),
+                 linear-gradient(120deg,#d33dd81a,#25cde71c 68%,#e8e96f20);
+      border:1px solid #a389f65e;transform:skewY(-10deg) rotate(7deg);opacity:.38;
+      box-shadow:22px 18px 0 -1px #ab68f619,22px 18px 0 0 #ca8bfa4b;
+      animation:qrFilmFloat 18s ease-in-out infinite alternate}
+    .shell{position:relative;z-index:2}
+    header{border-color:#a8a7dc44}
+    .panel{position:relative;overflow:hidden;border-color:#9c97cd55;
+      background:linear-gradient(143deg,rgba(18,21,37,.94),rgba(12,15,30,.91));
+      box-shadow:0 19px 45px #0006,inset 0 1px #ffffff0d;
+      backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);
+      transition:border-color .28s,box-shadow .28s,transform .28s}
+    .panel:hover{border-color:#b2a0ec89;box-shadow:0 25px 48px #0007,0 0 28px #8d4dca18}
+    .panel:focus-within{border-color:#76e3d2a6}
+    .grid>.panel{animation:qrPanelEnter .7s cubic-bezier(.22,1,.36,1) both}
+    .grid>.panel:nth-child(2){animation-delay:.11s}
+    .icon{box-shadow:0 0 20px #d7ff6e38;animation:qrBadgeGlow 8s ease-in-out infinite}
+    .examples button{background:linear-gradient(145deg,#292c42ef,#20253bef);border-color:#8077c04d}
+    .examples button:hover{border-color:#b398f0b5;box-shadow:0 0 19px #ad6de525}
+    button.primary{box-shadow:0 0 0 1px #eaff9950,0 0 22px #d9ff6d28}
+    button.primary:hover{box-shadow:0 0 0 2px #edffabc0,0 0 31px #d9ff6d5a}
+    .result-card{background:linear-gradient(155deg,rgba(28,28,47,.95),rgba(16,20,36,.96));
+      border-color:#9390bc4a;box-shadow:0 12px 24px #0004;
+      animation:qrCardEnter .5s cubic-bezier(.2,.8,.2,1) both}
+    .result-card:nth-child(2){animation-delay:.055s}.result-card:nth-child(3){animation-delay:.11s}
+    .result-card:nth-child(4){animation-delay:.16s}.result-card:nth-child(5){animation-delay:.21s}
+    .result-card:nth-child(6){animation-delay:.26s}
+    .result-card.wide{background:linear-gradient(130deg,#1b2a21f5,#15232bf5);border-color:#b5d87588}
+    .match{border-color:#ad9acd36}
+    @keyframes qrAtlasDrift{from{transform:scale(1.05) translate3d(-.7%,0,0)}to{transform:scale(1.12) translate3d(1.4%,-1%,0)}}
+    @keyframes qrPlasma{from{transform:translate3d(0,0,0) scale(1)}to{transform:translate3d(-3%,4%,0) scale(1.12)}}
+    @keyframes qrOrbit{from{transform:rotate(-28deg) scaleX(.78)}to{transform:rotate(332deg) scaleX(.78)}}
+    @keyframes qrFilmFloat{from{transform:translateY(0) skewY(-10deg) rotate(7deg)}to{transform:translateY(-18px) skewY(-10deg) rotate(9deg)}}
+    @keyframes qrBadgeGlow{0%,100%{box-shadow:0 0 14px #d7ff6e29}50%{box-shadow:0 0 25px #d7ff6e5e}}
+    @keyframes qrPanelEnter{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:translateY(0)}}
+    @keyframes qrCardEnter{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
+    @media(max-width:770px){
+      .qr-atlas{opacity:.44;background-position:42% top}
+      .qr-bloom{opacity:.35;filter:blur(18px)}
+      .qr-orbit,.qr-film{display:none}
+      .qr-world::after{background:linear-gradient(0deg,#080b19e5 0%,#080b1988 75%,#080b193b)}
+      .panel{-webkit-backdrop-filter:none;backdrop-filter:none}
+    }
+    @media(prefers-reduced-motion:reduce){
+      .qr-atlas,.qr-bloom,.qr-orbit,.qr-film,.icon,.grid>.panel,.result-card{animation:none!important}
+      .qr-atlas{transform:none!important}
+      .panel,button{transition:none!important}
+    }
   </style>
 </head>
 <body>
+  <div class="qr-world" aria-hidden="true">
+    <div class="qr-atlas"></div>
+    <div class="qr-bloom qr-bloom--rose"></div>
+    <div class="qr-bloom qr-bloom--cyan"></div>
+    <div class="qr-orbit"></div>
+    <div class="qr-orbit qr-orbit--small"></div>
+    <div class="qr-film"></div>
+  </div>
   <main class="shell">
     <header>
       <div class="brand"><span class="icon" aria-hidden="true">?</span> QUESTION RADAR <span class="flag">/ LAB 01</span></div>
