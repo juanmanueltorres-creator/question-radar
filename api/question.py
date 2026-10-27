@@ -19,6 +19,7 @@ sys.path.insert(0, str(ROOT / "src"))
 from question_radar.benchmark_io import load_evaluation_corpus
 from question_radar.retrieval import retrieve_candidates
 from question_radar.retrieval_export import retrieval_pack_payload
+from question_radar.ui_related import select_related_questions
 
 CORPUS_PATHS = (
     ROOT / "corpus/anti-ia-calibration-v0.2.jsonl",
@@ -155,7 +156,12 @@ class handler(BaseHTTPRequestHandler):
         except (OSError, ValueError, RuntimeError):
             return _reply(self, 500, {"error": "No se pudo cargar el corpus público de Question Radar."})
 
-        suggestion, notice = _gemini(question.strip(), retrieval, history)
+        related = select_related_questions(retrieval)
+        # Low-evidence matches are not passed to the model as context.
+        model_context = dict(retrieval)
+        allowed = {item['id'] for item in related}
+        model_context['results'] = [item for item in retrieval['results'] if item['entry']['id'] in allowed]
+        suggestion, notice = _gemini(question.strip(), model_context, history)
         _reply(self, 200, {
             "question": question.strip(),
             "analysis": suggestion,
@@ -163,15 +169,7 @@ class handler(BaseHTTPRequestHandler):
             "retrieval": {
                 "abstained": retrieval["abstained"],
                 "abstention_reason": retrieval["abstention_reason"],
-                "results": [
-                    {
-                        "id": item["entry"]["id"],
-                        "question": item["entry"]["question"],
-                        "coverage": item["query_coverage"],
-                        "matched_terms": item["matched_query_tokens"],
-                    }
-                    for item in retrieval["results"]
-                ],
+                "results": related,
                 "warning": "Coincidencia léxica, no equivalencia semántica.",
             },
         })
