@@ -9,6 +9,7 @@ from pathlib import Path
 import json
 import os
 import sys
+import time
 import urllib.error
 import urllib.request
 
@@ -56,7 +57,7 @@ def _gemini(question, context, history):
     if not key:
         return None, "Gemini todavía no está configurado en este proyecto de Vercel."
 
-    model = os.environ.get("QUESTION_RADAR_MODEL", "gemini-3.8-flash")
+    model = os.environ.get("QUESTION_RADAR_MODEL", "gemini-3.5-flash-lite")
     if not model.replace("-", "").replace(".", "").isalnum():
         return None, "Modelo configurado inválido."
 
@@ -73,9 +74,9 @@ def _gemini(question, context, history):
         "systemInstruction": {"parts": [{"text": SYSTEM_PROMPT}]},
         "contents": [{"role": "user", "parts": [{"text": prompt}]}],
         "generationConfig": {
-            "temperature": 0.35,
-            "maxOutputTokens": 1600,
+            "maxOutputTokens": 1400,
             "responseMimeType": "application/json",
+            "thinkingConfig": {"thinkingLevel": "MINIMAL" if "flash-lite" in model else "LOW"},
         },
     }
     request = urllib.request.Request(
@@ -84,27 +85,38 @@ def _gemini(question, context, history):
         headers={"Content-Type": "application/json", "x-goog-api-key": key},
         method="POST",
     )
-    try:
-        with urllib.request.urlopen(request, timeout=20) as response:
-            result = json.loads(response.read(180_000))
-        text = result["candidates"][0]["content"]["parts"][0]["text"]
-        parsed = json.loads(text)
-        fields = ("diagnostico", "supuesto", "reformulada", "alternativa", "pregunta_siguiente", "razon")
-        if not isinstance(parsed, dict) or not all(isinstance(parsed.get(f), str) for f in fields):
-            raise ValueError("Gemini devolvió una estructura inesperada")
-        return {f: parsed[f][:1000] for f in fields}, None
-    except urllib.error.HTTPError as exc:
-        if exc.code == 429:
-            return None, "Se alcanzó el límite temporal de Gemini. Probá más tarde."
-        if exc.code in (401, 403):
-            return None, "La credencial de Gemini no es válida o no tiene acceso al modelo."
-        if exc.code == 404:
-            return None, "El modelo no está habilitado para esta clave. Revisá QUESTION_RADAR_MODEL."
-        return None, f"Gemini no pudo responder (HTTP {exc.code})."
-    except (urllib.error.URLError, TimeoutError):
-        return None, "Gemini no respondió a tiempo."
-    except (ValueError, KeyError, IndexError, TypeError):
-        return None, "La respuesta de Gemini no pudo interpretarse."
+    # One bounded retry for upstream congestion, never for invalid keys or exhausted quota.
+    for attempt in range(2):
+        try:
+            with urllib.request.urlopen(request, timeout=16) as response:
+                result = json.loads(response.read(180_000))
+            answer_text = result["candidates"][0]["content"]["parts"][0]["text"]
+            parsed = json.loads(answer_text)
+            fields = ("diagnostico", "supuesto", "reformulada", "alternativa", "pregunta_siguiente", "razon")
+            if not isinstance(parsed, dict) or not all(isinstance(parsed.get(f), str) for f in fields):
+                raise ValueError("Gemini devolvió una estructura inesperada")
+            return {f: parsed[f][:1000] for f in fields}, None
+        except urllib.error.HTTPError as exc:
+            if exc.code in (503, 504, 500, 502) and attempt == 0:
+                time.sleep(1)
+                continue
+            if exc.code == 429:
+                return None, "Gemini alcanzó su cuota o límite de solicitudes. Revisá los límites de tu proyecto en AI Studio."
+            if exc.code in (401, 403):
+                return None, "La credencial de Gemini no es válida o no tiene acceso al modelo."
+            if exc.code == 404:
+                return None, "El modelo no está habilitado para esta clave. Revisá QUESTION_RADAR_MODEL."
+            if exc.code in (400, 422):
+                return None, "Gemini rechazó los parámetros de la solicitud. Revisá el modelo configurado."
+            return None, f"Gemini no pudo responder (HTTP {exc.code})."
+        except (TimeoutError, urllib.error.URLError):
+            if attempt == 0:
+                time.sleep(1)
+                continue
+            return None, "Gemini superó el tiempo de espera en dos intentos. Podés reintentar más tarde."
+        except (ValueError, KeyError, IndexError, TypeError):
+            return None, "La respuesta de Gemini no pudo interpretarse."
+    return None, "No se obtuvo respuesta de Gemini."
 
 
 class handler(BaseHTTPRequestHandler):
@@ -113,7 +125,7 @@ class handler(BaseHTTPRequestHandler):
             "app": "Question Radar",
             "mode": "refine_questions",
             "gemini_configured": bool(os.environ.get("GEMINI_API_KEY") or os.environ.get("GOOGLE_API_KEY")),
-            "model": os.environ.get("QUESTION_RADAR_MODEL", "gemini-3.8-flash"),
+            "model": os.environ.get("QUESTION_RADAR_MODEL", "gemini-3.5-flash-lite"),
             "storage": "none",
         })
 
