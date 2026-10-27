@@ -106,6 +106,9 @@
     const related = document.querySelector('#related');
     const matches = document.querySelector('#matches');
     let lastQuestion = '';
+    // Accidental double-submit guard only. This is NOT server-side rate limiting.
+    let lastSubmissionAt = 0;
+    const MIN_SUBMIT_INTERVAL_MS = 8000;
     const text = (tag, value, className='') => {
       const el = document.createElement(tag); el.textContent = value || '—';
       if (className) el.className = className; return el;
@@ -127,6 +130,15 @@
     form.addEventListener('submit',async(ev)=>{
       ev.preventDefault();
       const question=input.value.trim();if(question.length<8)return;
+      const now = Date.now();
+      if(now - lastSubmissionAt < MIN_SUBMIT_INTERVAL_MS){
+        result.classList.add('show');
+        status.textContent='03 / Esperá un momento';
+        cards.replaceChildren();
+        card('Un intento a la vez','Podés volver a mejorar la pregunta en unos segundos.',true);
+        return;
+      }
+      lastSubmissionAt = now;
       button.disabled=true;button.textContent='EXAMINANDO…';
       result.classList.add('show');status.textContent='03 / Analizando…';cards.replaceChildren();related.hidden=true;
       try{
