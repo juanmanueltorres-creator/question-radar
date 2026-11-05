@@ -5,6 +5,18 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#0e1017">
   <title>Question Radar — Reformulá lo que preguntás</title>
+  <script>
+    (() => {
+      try {
+        const query = new URLSearchParams(location.search);
+        const key = 'question-radar:intro-seen';
+        if (query.has('app')) { sessionStorage.setItem(key, '1'); return; }
+        if (query.has('intro') || sessionStorage.getItem(key) !== '1') {
+          location.replace('/intro.html');
+        }
+      } catch (_) { /* Keep app accessible when storage is disabled. */ }
+    })();
+  </script>
   <style>
     :root{color-scheme:dark;--bg:#0e1017;--fg:#e9eaf0;--sub:#9299aa;--line:#303441;--ink:#161925;--a:#d9ff6d;--b:#c4a9ff;--c:#65dfcf}
     *{box-sizing:border-box}html{scroll-behavior:smooth}body{margin:0;min-height:100vh;background:var(--bg);color:var(--fg);font:15px/1.5 system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
@@ -87,7 +99,7 @@
       </div>
     </section>
     <footer>
-      <span>QUESTION RADAR · <a href="https://github.com/juanmanueltorres-creator/question-radar" rel="noopener noreferrer" target="_blank">OPEN SOURCE ↗</a></span>
+      <span>QUESTION RADAR · <a href="/intro.html">REPETIR INTRO ↗</a> · <a href="https://github.com/juanmanueltorres-creator/question-radar" rel="noopener noreferrer" target="_blank">OPEN SOURCE ↗</a></span>
       <span>Sin cuentas · Sin guardar tus preguntas en el servidor</span>
     </footer>
   </main>
