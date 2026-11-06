@@ -28,8 +28,15 @@ DO_NOW / RESEARCH / PARKED / KILLED
 optional explicit research handoff
 ```
 
-**Current product line:** v0.9 Investigation Decision Gate + Cross-Repo Research Handoff v0.1  
-**Stack:** Python 3.11+ · SQLite · CLI · JSONL/CSV · standard-library runtime only
+**Current local product line:** v0.9 Investigation Decision Gate + Cross-Repo Research Handoff v0.1  
+**Local core:** Python 3.11+ · SQLite · CLI · JSONL/CSV · standard-library runtime only. The separate public interface uses a small web page and a Python API.
+
+### Two ways to use Question Radar
+
+The **web interface** helps someone write a question, review supported matches from the public corpus and, when configured, get a Gemini-assisted reformulation. It is a read-only exploration surface: it does **not** save personal questions or apply the CLI investigation decisions automatically. See [`public/index.html`](public/index.html) and [`api/question.py`](api/question.py); the initial web UI and its presentation filter were added in [PR #29](https://github.com/juanmanueltorres-creator/question-radar/pull/29) and [PR #30](https://github.com/juanmanueltorres-creator/question-radar/pull/30).
+
+The **local CLI** is for keeping question history, reviewing evidence, recording explicit decisions and exporting authorized handoffs. For setup, use [Quick start](#quick-start); for detailed milestones, use [`ROADMAP.md`](ROADMAP.md). This README describes the product, not a guarantee that optional AI credentials or preview deployments are configured.
+
 
 Question Radar is deliberately conservative: **it structures inquiry; it does not score the person asking the question and it does not manufacture certainty to keep a pipeline moving.**
 
