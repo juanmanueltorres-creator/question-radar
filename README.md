@@ -1,5 +1,9 @@
 # Question Radar
 
+![Question Radar — preguntar, recuperar, reformular y decidir](docs/assets/product-journey.svg)
+
+*Esquema del recorrido de producto; la interfaz pública y el motor local tienen alcances distintos.*
+
 > **A good answer can close a task. A good question can open an investigation.**
 
 Question Radar is a local-first system for **keeping useful questions alive long enough to investigate them well**.
