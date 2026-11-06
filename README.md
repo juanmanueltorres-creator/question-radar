@@ -37,6 +37,9 @@ The **web interface** helps someone write a question, review supported matches f
 
 The **local CLI** is for keeping question history, reviewing evidence, recording explicit decisions and exporting authorized handoffs. For setup, use [Quick start](#quick-start); for detailed milestones, use [`ROADMAP.md`](ROADMAP.md). This README describes the product, not a guarantee that optional AI credentials or preview deployments are configured.
 
+**Kaleidoscope intro / deployment status (2026-11-06):** the visual introduction is [deployed on Vercel](https://question-radar.vercel.app) according to the [Ready deployment reported on PR #32](https://github.com/juanmanueltorres-creator/question-radar/pull/32). That PR remains **open** and its intro changes are **not in `main`**. A deployed preview or alias is not proof that `main` and the live site contain the same files. Before altering release notes, verify the active deployment's commit and domain assignment in Vercel. The PR also records unresolved image-rights and reduced-motion review items; do not describe those as cleared merely because a deployment is live.
+
+
 
 Question Radar is deliberately conservative: **it structures inquiry; it does not score the person asking the question and it does not manufacture certainty to keep a pipeline moving.**
 
