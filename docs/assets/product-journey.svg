@@ -1,0 +1,43 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="320" viewBox="0 0 1200 320" role="img" aria-labelledby="title desc">
+<title id="title">QUESTION RADAR — recorrido de producto</title>
+<desc id="desc">Preguntas mejores, antes de iniciar investigaciones más grandes. Preguntar, Recuperar, Reformular, Decidir.</desc>
+<defs><linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#0c0c18"/><stop offset="1" stop-color="#29223d"/></linearGradient></defs>
+<rect width="1200" height="320" rx="22" fill="url(#bg)"/>
+<g fill="none" stroke="#c2acff" stroke-width="1" stroke-opacity=".17">
+<circle cx="1060" cy="-48" r="170"/><circle cx="1060" cy="-48" r="128"/><circle cx="1060" cy="-48" r="86"/><circle cx="1060" cy="-48" r="44"/>
+<path d="M0 123H1200"/>
+</g>
+<path d="M54 40 h23" stroke="#c2acff" stroke-width="5" stroke-linecap="round"/>
+<text x="92" y="48" fill="#f4f8f4" font-family="system-ui,Segoe UI,Arial,sans-serif" font-size="30" font-weight="760" letter-spacing=".5">QUESTION RADAR</text>
+<text x="54" y="89" fill="#cadad0" font-family="system-ui,Segoe UI,Arial,sans-serif" font-size="17">Preguntas mejores, antes de iniciar investigaciones más grandes</text>
+<text x="54" y="121" fill="#c2acff" font-family="system-ui,Segoe UI,Arial,sans-serif" font-size="12" font-weight="700" letter-spacing="1.9">RECORRIDO DE PRODUCTO</text>
+<g>
+<rect x="54" y="143" width="242" height="126" rx="16" fill="#29223d" fill-opacity=".66" stroke="#c2acff" stroke-opacity=".33" />
+<circle cx="83" cy="174" r="13" fill="#c2acff" fill-opacity=".14" stroke="#c2acff" stroke-opacity=".75" />
+<text x="83" y="179" fill="#c2acff" text-anchor="middle" font-family="system-ui,Segoe UI,Arial,sans-serif" font-size="13" font-weight="700">1</text>
+<text x="76" y="218" fill="#f4f8f4" font-family="system-ui,Segoe UI,Arial,sans-serif" font-size="23" font-weight="720">Preguntar</text>
+<text x="76" y="242" fill="#c3d3cc" font-family="system-ui,Segoe UI,Arial,sans-serif" font-size="14">Intención y contexto</text>
+</g><path d="M 307 205 l 12 0 m -6 -6 l 6 6 -6 6" fill="none" stroke="#c2acff" stroke-width="1.8" opacity=".83" stroke-linecap="round" stroke-linejoin="round"/>
+<g>
+<rect x="330" y="143" width="242" height="126" rx="16" fill="#29223d" fill-opacity=".66" stroke="#c2acff" stroke-opacity=".33" />
+<circle cx="359" cy="174" r="13" fill="#c2acff" fill-opacity=".14" stroke="#c2acff" stroke-opacity=".75" />
+<text x="359" y="179" fill="#c2acff" text-anchor="middle" font-family="system-ui,Segoe UI,Arial,sans-serif" font-size="13" font-weight="700">2</text>
+<text x="352" y="218" fill="#f4f8f4" font-family="system-ui,Segoe UI,Arial,sans-serif" font-size="23" font-weight="720">Recuperar</text>
+<text x="352" y="242" fill="#c3d3cc" font-family="system-ui,Segoe UI,Arial,sans-serif" font-size="14">Corpus y antecedentes</text>
+</g><path d="M 583 205 l 12 0 m -6 -6 l 6 6 -6 6" fill="none" stroke="#c2acff" stroke-width="1.8" opacity=".83" stroke-linecap="round" stroke-linejoin="round"/>
+<g>
+<rect x="606" y="143" width="242" height="126" rx="16" fill="#29223d" fill-opacity=".66" stroke="#c2acff" stroke-opacity=".33" />
+<circle cx="635" cy="174" r="13" fill="#c2acff" fill-opacity=".14" stroke="#c2acff" stroke-opacity=".75" />
+<text x="635" y="179" fill="#c2acff" text-anchor="middle" font-family="system-ui,Segoe UI,Arial,sans-serif" font-size="13" font-weight="700">3</text>
+<text x="628" y="218" fill="#f4f8f4" font-family="system-ui,Segoe UI,Arial,sans-serif" font-size="23" font-weight="720">Reformular</text>
+<text x="628" y="242" fill="#c3d3cc" font-family="system-ui,Segoe UI,Arial,sans-serif" font-size="14">IA opcional</text>
+</g><path d="M 859 205 l 12 0 m -6 -6 l 6 6 -6 6" fill="none" stroke="#c2acff" stroke-width="1.8" opacity=".83" stroke-linecap="round" stroke-linejoin="round"/>
+<g>
+<rect x="882" y="143" width="242" height="126" rx="16" fill="#29223d" fill-opacity=".66" stroke="#c2acff" stroke-opacity=".33" />
+<circle cx="911" cy="174" r="13" fill="#c2acff" fill-opacity=".14" stroke="#c2acff" stroke-opacity=".75" />
+<text x="911" y="179" fill="#c2acff" text-anchor="middle" font-family="system-ui,Segoe UI,Arial,sans-serif" font-size="13" font-weight="700">4</text>
+<text x="904" y="218" fill="#f4f8f4" font-family="system-ui,Segoe UI,Arial,sans-serif" font-size="23" font-weight="720">Decidir</text>
+<text x="904" y="242" fill="#c3d3cc" font-family="system-ui,Segoe UI,Arial,sans-serif" font-size="14">Criterio humano</text>
+</g>
+<text x="54" y="301" fill="#a9bdb3" font-family="system-ui,Segoe UI,Arial,sans-serif" font-size="13">Coincidencia léxica ≠ equivalencia · La web no almacena preguntas personales</text>
+</svg>
