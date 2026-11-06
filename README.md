@@ -1,5 +1,9 @@
 # Question Radar
 
+![Question Radar — preguntar, recuperar, reformular y decidir](docs/assets/product-journey.svg)
+
+*Esquema del recorrido de producto; la interfaz pública y el motor local tienen alcances distintos.*
+
 > **A good answer can close a task. A good question can open an investigation.**
 
 Question Radar is a local-first system for **keeping useful questions alive long enough to investigate them well**.
@@ -28,8 +32,18 @@ DO_NOW / RESEARCH / PARKED / KILLED
 optional explicit research handoff
 ```
 
-**Current product line:** v0.9 Investigation Decision Gate + Cross-Repo Research Handoff v0.1  
-**Stack:** Python 3.11+ · SQLite · CLI · JSONL/CSV · standard-library runtime only
+**Current local product line:** v0.9 Investigation Decision Gate + Cross-Repo Research Handoff v0.1  
+**Local core:** Python 3.11+ · SQLite · CLI · JSONL/CSV · standard-library runtime only. The separate public interface uses a small web page and a Python API.
+
+### Two ways to use Question Radar
+
+The **web interface** helps someone write a question, review supported matches from the public corpus and, when configured, get a Gemini-assisted reformulation. It is a read-only exploration surface: it does **not** save personal questions or apply the CLI investigation decisions automatically. See [`public/index.html`](public/index.html) and [`api/question.py`](api/question.py); the initial web UI and its presentation filter were added in [PR #29](https://github.com/juanmanueltorres-creator/question-radar/pull/29) and [PR #30](https://github.com/juanmanueltorres-creator/question-radar/pull/30).
+
+The **local CLI** is for keeping question history, reviewing evidence, recording explicit decisions and exporting authorized handoffs. For setup, use [Quick start](#quick-start); for detailed milestones, use [`ROADMAP.md`](ROADMAP.md). This README describes the product, not a guarantee that optional AI credentials or preview deployments are configured.
+
+**Kaleidoscope intro / deployment status (2026-11-06):** the visual introduction is [deployed on Vercel](https://question-radar.vercel.app) according to the [Ready deployment reported on PR #32](https://github.com/juanmanueltorres-creator/question-radar/pull/32). That PR remains **open** and its intro changes are **not in `main`**. A deployed preview or alias is not proof that `main` and the live site contain the same files. Before altering release notes, verify the active deployment's commit and domain assignment in Vercel. The PR also records unresolved image-rights and reduced-motion review items; do not describe those as cleared merely because a deployment is live.
+
+
 
 Question Radar is deliberately conservative: **it structures inquiry; it does not score the person asking the question and it does not manufacture certainty to keep a pipeline moving.**
 
