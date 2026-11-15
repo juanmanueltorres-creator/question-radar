@@ -130,9 +130,46 @@ body { margin: 0; width: 100%; min-height: 100%; overflow-x: hidden; background:
 <style>
 .intro-skip{position:fixed;top:-200px;left:15px;z-index:9999;background:#fff4e7;color:#090914;padding:12px 16px;border-radius:5px;font:700 14px system-ui;text-decoration:none}
 .intro-skip:focus-visible{top:15px;outline:3px solid #fa1c8f}
+/* Fallback de primera pintura: no exhibir el texto sin caleidoscopio. */
+.intro-preloader {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: grid;
+  place-items: center;
+  background: #030307;
+  color: #fff4e7;
+  text-align: center;
+  pointer-events: none;
+  transition: opacity 220ms ease, visibility 220ms ease;
+}
+.intro-preloader.is-hidden { opacity: 0; visibility: hidden; }
+.intro-preloader__wordmark {
+  font: 800 clamp(14px, 2vw, 22px)/1.1 system-ui, sans-serif;
+  letter-spacing: .25em;
+}
+.intro-preloader__accent {
+  display: block;
+  width: 36px;
+  height: 2px;
+  margin: 20px auto 0;
+  background: #fa1c8f;
+  animation: intro-loading-pulse 950ms ease-in-out infinite alternate;
+}
+@keyframes intro-loading-pulse { to { opacity: .28; transform: scaleX(.55); } }
+@media (prefers-reduced-motion: reduce) {
+  .intro-preloader { transition: none; }
+  .intro-preloader__accent { animation: none; }
+}
 </style>
 </head>
 <body>
+<div class="intro-preloader" id="intro-preloader" role="status" aria-label="Cargando la introducción de Question Radar">
+  <div>
+    <div class="intro-preloader__wordmark">QUESTION RADAR</div>
+    <span class="intro-preloader__accent" aria-hidden="true"></span>
+  </div>
+</div>
 <a class="intro-skip" href="/?app=1">Ir a Question Radar</a>
   <!-- Una sola escena visual, fija: todo el viewport es caleidoscopio. -->
   <main class="stage" aria-label="Espejo de la Humanidad: historia visual interactiva">
@@ -224,6 +261,40 @@ for (let i = 0; i < 8; i++) {
   wrapper.appendChild(wedge);
   kaleidoscope.appendChild(wrapper);
 }
+
+/* Revelar la escena cuando la primera imagen esté decodificada y haya
+   tenido oportunidad de pintarse. Sin demora mínima artificial. */
+async function revealIntroWhenReady() {
+  const preloader = document.getElementById('intro-preloader');
+  if (!preloader) return;
+  const firstImage = new Image();
+  let watchdog;
+  try {
+    const ready = new Promise((resolve, reject) => {
+      firstImage.onload = async () => {
+        try {
+          if (firstImage.decode) await firstImage.decode();
+          resolve();
+        } catch (error) { reject(error); }
+      };
+      firstImage.onerror = () => reject(new Error('No se pudo cargar la primera imagen'));
+      firstImage.src = imgUrl(0);
+    });
+    await Promise.race([
+      ready,
+      new Promise(resolve => { watchdog = setTimeout(resolve, 5000); }),
+    ]);
+  } catch (error) {
+    console.warn('La introducción continuó sin la imagen inicial:', error);
+  } finally {
+    clearTimeout(watchdog);
+  }
+  await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+  preloader.classList.add('is-hidden');
+  if (motion.matches) preloader.remove();
+  else preloader.addEventListener('transitionend', () => preloader.remove(), { once: true });
+}
+void revealIntroWhenReady();
 
 function preload(src) {
   return new Promise((resolve, reject) => {
